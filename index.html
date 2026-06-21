@@ -1,0 +1,311 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Hexashift</title>
+<style>
+  :root{
+    --bg:#0f1320; --panel:#161b2c; --ink:#e7ecf5; --muted:#8b95ad;
+    --line:#0a0d16; --accent:#5b8cff; --good:#36d399;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{
+    background:radial-gradient(1200px 800px at 50% -10%, #1b2236 0, var(--bg) 60%), var(--bg);
+    color:var(--ink); font:15px/1.45 system-ui,Segoe UI,Roboto,sans-serif;
+    display:flex; flex-direction:column; align-items:center; min-height:100%;
+  }
+  header{text-align:center; padding:18px 12px 4px}
+  header h1{margin:0; font-size:26px; letter-spacing:.5px}
+  header p{margin:4px 0 0; color:var(--muted); font-size:13px}
+  main{
+    display:flex; flex-direction:column; gap:18px; align-items:center;
+    justify-content:flex-start; padding:14px; width:100%; max-width:980px;
+  }
+  #boardWrap{
+    background:var(--panel); border:1px solid #222a40; border-radius:16px;
+    padding:14px; box-shadow:0 10px 40px rgba(0,0,0,.35);
+  }
+  svg#board{display:block; width:min(78vw,460px); height:auto; touch-action:none}
+  .tri{stroke:var(--line); stroke-width:.02; transition:fill .18s ease, opacity .12s ease}
+  .tri.moved{stroke:#fff; stroke-width:.05}
+  .tri.dim{opacity:.22}
+  .frame{fill:none; stroke:#0a0d16; stroke-width:.05; stroke-linejoin:round}
+  .frame.outer{stroke-width:.07}
+
+  #hud{display:flex; gap:14px; align-items:stretch; flex-wrap:wrap;
+    justify-content:center; width:100%; max-width:460px}
+  .stats{display:flex; gap:10px; flex:1}
+  .stat{flex:1; background:var(--panel); border:1px solid #222a40; border-radius:12px;
+    padding:10px 12px; text-align:center}
+  .stat b{display:block; font-size:22px}
+  .stat span{color:var(--muted); font-size:11px; text-transform:uppercase; letter-spacing:.6px}
+  .actions{display:flex; gap:10px; flex:1}
+  button{font:inherit; color:var(--ink); cursor:pointer; border-radius:10px;
+    border:1px solid #2a3350; background:#1c2440; transition:.12s}
+  button:hover{border-color:var(--accent); background:#243056}
+  button:active{transform:translateY(1px)}
+  .actions button{flex:1; padding:10px}
+  .actions button.primary{background:var(--accent); border-color:var(--accent); color:#08101f; font-weight:600}
+
+  .ctrl{cursor:pointer}
+  .ctrl path{fill:var(--muted); transition:fill .12s ease}
+  .ctrl:hover path{fill:var(--accent)}
+  .ctrl circle{fill:transparent}
+
+  #win{position:fixed; inset:0; background:rgba(8,11,20,.72); display:none;
+    place-items:center; backdrop-filter:blur(3px)}
+  #win.show{display:grid}
+  #win .card{background:var(--panel); border:1px solid #2a3350; border-radius:16px;
+    padding:26px 30px; text-align:center; box-shadow:0 20px 60px rgba(0,0,0,.5)}
+  #win h2{margin:0 0 6px; color:var(--good); font-size:24px}
+  #win p{margin:0 0 16px; color:var(--muted)}
+  footer{color:var(--muted); font-size:12px; padding:6px 0 22px; text-align:center; max-width:620px}
+</style>
+</head>
+<body>
+  <header>
+    <h1>Hexashift</h1>
+    <p>Sort all 24 triangles so each of the six big triangles is one solid color.</p>
+  </header>
+
+  <main>
+    <div id="boardWrap">
+      <svg id="board" viewBox="-2.6 -2.45 5.2 4.9" aria-label="Hexashift board">
+        <g transform="scale(1,-1)" id="boardG"></g>
+        <g id="controls"></g>
+      </svg>
+    </div>
+
+    <div id="hud">
+      <div class="stats">
+        <div class="stat"><b id="movesN">0</b><span>Moves</span></div>
+        <div class="stat"><b id="solvedN">0/6</b><span>Sectors solved</span></div>
+      </div>
+      <div class="actions">
+        <button class="primary" id="newBtn">New game</button>
+        <button id="undoBtn">Undo</button>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    Click an arrow to drag that half of the board (its two rows) one triangle along its axis.
+    Triangles that run off one end wrap around to the other.
+  </footer>
+
+  <div id="win"><div class="card">
+    <h2>Solved!</h2>
+    <p id="winMsg"></p>
+    <button class="primary" id="winBtn">Play again</button>
+  </div></div>
+
+<script>
+"use strict";
+const SQRT3 = Math.sqrt(3), H = SQRT3/2;
+const COLORS = ['#e74c3c','#e67e22','#f1c40f','#2ecc71','#3498db','#9b59b6'];
+
+/* ---- 1. Build the 24 triangles (flat-top hexagon, side 2) ---- */
+const Ly = [SQRT3, SQRT3/2, 0, -SQRT3/2, -SQRT3];           // 5 horizontal grid lines
+const P  = [[-1,0,1],[-1.5,-0.5,0.5,1.5],[-2,-1,0,1,2],[-1.5,-0.5,0.5,1.5],[-1,0,1]];
+const tris = [];
+for(let r=0;r<4;r++){
+  const upperY=Ly[r], lowerY=Ly[r+1], up=P[r], low=P[r+1];
+  for(let i=0;i<low.length-1;i++){                          // up-triangles (base on lower line)
+    const x0=low[i],x1=low[i+1];
+    tris.push({verts:[[x0,lowerY],[x1,lowerY],[(x0+x1)/2,upperY]]});
+  }
+  for(let i=0;i<up.length-1;i++){                           // down-triangles (base on upper line)
+    const x0=up[i],x1=up[i+1];
+    tris.push({verts:[[x0,upperY],[x1,upperY],[(x0+x1)/2,lowerY]]});
+  }
+}
+tris.forEach((t,id)=>{
+  t.id=id;
+  t.cx=(t.verts[0][0]+t.verts[1][0]+t.verts[2][0])/3;
+  t.cy=(t.verts[0][1]+t.verts[1][1]+t.verts[2][1])/3;
+  const ang=(Math.atan2(t.cy,t.cx)*180/Math.PI+360)%360;
+  t.sector=Math.floor(ang/60);                              // 0..5 big-triangle wedge
+});
+
+/* ---- 2. Rows / halves for each of the 3 axes (0, 60, 120 degrees) ---- */
+const rot=(x,y,deg)=>{const a=deg*Math.PI/180,c=Math.cos(a),s=Math.sin(a);return [x*c-y*s, x*s+y*c];};
+function buildAxis(theta){
+  const recs=tris.map(t=>{
+    const rv=t.verts.map(([x,y])=>rot(x,y,-theta));
+    const ys=[...new Set(rv.map(p=>Math.round(p[1]*1e4)/1e4))];      // 2 distinct line heights
+    const band=Math.round((ys[0]+ys[1])/2*1e4)/1e4;                 // mid of the two lines
+    const rcx=(rv[0][0]+rv[1][0]+rv[2][0])/3;
+    return {id:t.id, band, rcx};
+  });
+  const byBand={};
+  recs.forEach(r=>{(byBand[r.band]=byBand[r.band]||[]).push(r);});
+  const keys=Object.keys(byBand).map(Number).sort((a,b)=>b-a);      // top -> bottom
+  return keys.map(k=>byBand[k].sort((a,b)=>a.rcx-b.rcx).map(r=>r.id)); // 4 rows, sizes 5,7,7,5
+}
+const AXES=[0,60,120].map(buildAxis);
+
+const DIRS=[[90,'Top'],[270,'Bottom'],[30,'Upper-right'],[150,'Upper-left'],[210,'Lower-left'],[330,'Lower-right']];
+function labelFromAngle(deg){
+  deg=(deg+360)%360; let best='',bd=1e9;
+  for(const [a,n] of DIRS){const d=Math.abs(((deg-a+540)%360)-180); if(d<bd){bd=d;best=n;}}
+  return best;
+}
+const HALVES=[];                                            // 6 halves, each = two rows
+AXES.forEach((rows,ai)=>{
+  [[0,1],[2,3]].forEach(([p,q])=>{
+    const rws=[rows[p],rows[q]], aff=[...rws[0],...rws[1]];
+    const mx=aff.reduce((s,id)=>s+tris[id].cx,0)/aff.length;
+    const my=aff.reduce((s,id)=>s+tris[id].cy,0)/aff.length;
+    HALVES.push({axis:ai, theta:[0,60,120][ai], rows:rws, aff,
+                 label:labelFromAngle(Math.atan2(my,mx)*180/Math.PI)});
+  });
+});
+
+/* ---- 3. Game state ---- */
+let state=new Array(24).fill(0);                            // color index per triangle
+let moves=0, history=[], busy=false;
+
+function rotateColors(ids,dir){
+  const n=ids.length, vals=ids.map(i=>state[i]);
+  ids.forEach((id,k)=>{ state[id]=vals[(k-dir+n)%n]; });
+}
+function applyHalf(half,dir){ half.rows.forEach(row=>rotateColors(row,dir)); }
+
+function doMove(half,dir){
+  if(busy) return;
+  applyHalf(half,dir);
+  history.push([half,dir]); moves++;
+  refresh();
+  flash(half.aff);
+  if(isSolved()){ moves>0 && win(); }
+}
+function undo(){
+  if(busy||!history.length) return;
+  const [half,dir]=history.pop();
+  applyHalf(half,-dir); moves=Math.max(0,moves-1);
+  refresh(); flash(half.aff);
+}
+
+function isSolved(){
+  for(let s=0;s<6;s++){
+    const ids=tris.filter(t=>t.sector===s);
+    if(ids.some(t=>state[t.id]!==state[ids[0].id])) return false;
+  }
+  return true;
+}
+function solvedCount(){
+  let c=0;
+  for(let s=0;s<6;s++){
+    const ids=tris.filter(t=>t.sector===s);
+    if(ids.every(t=>state[t.id]===state[ids[0].id])) c++;
+  }
+  return c;
+}
+
+function scramble(){
+  state=[]; for(let s=0;s<6;s++) for(let k=0;k<4;k++) state.push(s);   // solved
+  // map sector -> triangle ids, assign solved colors
+  const solved=new Array(24);
+  for(let s=0;s<6;s++) tris.filter(t=>t.sector===s).forEach(t=>solved[t.id]=s);
+  state=solved.slice();
+  do{
+    for(let i=0;i<2;i++){
+      const half=HALVES[(Math.random()*HALVES.length)|0];
+      applyHalf(half, Math.random()<0.5?1:-1);
+    }
+  } while(isSolved());
+  moves=0; history=[]; refresh();
+}
+
+/* ---- 4. Rendering ---- */
+const boardG=document.getElementById('boardG');
+const polys=[];
+tris.forEach(t=>{
+  const p=document.createElementNS('http://www.w3.org/2000/svg','polygon');
+  p.setAttribute('points', t.verts.map(v=>v.join(',')).join(' '));
+  p.setAttribute('class','tri');
+  boardG.appendChild(p); polys[t.id]=p;
+});
+// frame: six big-triangle outlines (center -> each vertex) + outer hexagon
+const VTX=[[1,SQRT3],[2,0],[1,-SQRT3],[-1,-SQRT3],[-2,0],[-1,SQRT3]];
+VTX.forEach(v=>{
+  const l=document.createElementNS('http://www.w3.org/2000/svg','line');
+  l.setAttribute('x1',0); l.setAttribute('y1',0); l.setAttribute('x2',v[0]); l.setAttribute('y2',v[1]);
+  l.setAttribute('class','frame'); boardG.appendChild(l);
+});
+const hex=document.createElementNS('http://www.w3.org/2000/svg','polygon');
+hex.setAttribute('points', VTX.map(v=>v.join(',')).join(' '));
+hex.setAttribute('class','frame outer'); boardG.appendChild(hex);
+
+function refresh(){
+  tris.forEach(t=>polys[t.id].setAttribute('fill', COLORS[state[t.id]]));
+  document.getElementById('movesN').textContent=moves;
+  document.getElementById('solvedN').textContent=solvedCount()+'/6';
+}
+function highlight(ids){
+  const set=new Set(ids);
+  tris.forEach(t=>polys[t.id].classList.toggle('dim', !set.has(t.id)));
+}
+function clearHighlight(){ tris.forEach(t=>polys[t.id].classList.remove('dim')); }
+function flash(ids){
+  busy=true;
+  ids.forEach(id=>polys[id].classList.add('moved'));
+  setTimeout(()=>{ ids.forEach(id=>polys[id].classList.remove('moved')); busy=false; },190);
+}
+
+/* ---- 5. Controls: drag-arrows outside the hex, V-splayed at the side middles ---- */
+const SVGNS='http://www.w3.org/2000/svg';
+const controls=document.getElementById('controls');
+// 6 hexagon-side midpoint bearings (unit vectors); arrows seat just outside each side
+const SIDES=[30,90,150,210,270,330].map(d=>{const a=d*Math.PI/180; return [Math.cos(a),Math.sin(a)];});
+const R=1.78, SEP=0.50;                                            // tail anchor radius (just outside edge) + sideways gap between the pair
+HALVES.forEach(half=>{
+  const th=half.theta*Math.PI/180;
+  [1,-1].forEach(dir=>{
+    const ux=dir*Math.cos(th), uy=dir*Math.sin(th);                 // shift direction (math, y-up) = where the half slides to
+    // head = band end the shift moves toward; its bearing picks the side the arrow exits through
+    let head=half.aff[0], max=-Infinity;
+    half.aff.forEach(id=>{ const p=tris[id].cx*ux+tris[id].cy*uy; if(p>max){max=p;head=id;} });
+    const ha=Math.atan2(tris[head].cy,tris[head].cx);
+    let side=SIDES[0], bd=Infinity;
+    SIDES.forEach(s=>{ const d=Math.abs(((Math.atan2(s[1],s[0])-ha+3*Math.PI)%(2*Math.PI))-Math.PI); if(d<bd){bd=d;side=s;} });
+    // push the pair apart sideways along the edge: offset tail by the tangential part of u
+    const nx=side[0], ny=side[1], un=ux*nx+uy*ny;                  // radial unit (= side bearing) and u's radial component
+    let tx=ux-un*nx, ty=uy-un*ny, tl=Math.hypot(tx,ty)||1; tx/=tl; ty/=tl;
+    const cxm=nx*R+SEP*tx, cym=ny*R+SEP*ty;                        // tail just outside the side, nudged along the edge (two per side fan into a V)
+    const px=cxm, py=-cym;                                         // math y-up -> svg y-down (controls group is not flipped)
+    const ang=Math.atan2(-uy,ux)*180/Math.PI;                      // math dir -> svg (y-down) rotation
+    const g=document.createElementNS(SVGNS,'g'); g.setAttribute('class','ctrl');
+    g.setAttribute('transform',`translate(${px.toFixed(3)},${py.toFixed(3)}) rotate(${ang.toFixed(2)})`);
+    const hit=document.createElementNS(SVGNS,'circle');            // transparent hit target over the arrow body
+    hit.setAttribute('cx','0.26'); hit.setAttribute('cy','0'); hit.setAttribute('r','0.30');
+    const path=document.createElementNS(SVGNS,'path');             // slim shafted arrow pointing +x (= shift direction, outward)
+    path.setAttribute('d','M0 -.02 L.34 -.02 L.34 -.085 L.52 0 L.34 .085 L.34 .02 L0 .02 Z');
+    const t=document.createElementNS(SVGNS,'title');
+    t.textContent=`Drag ${half.label.toLowerCase()} half ${dir===1?'forward':'back'}`;
+    g.appendChild(hit); g.appendChild(path); g.appendChild(t);
+    g.addEventListener('mouseenter',()=>highlight(half.aff));
+    g.addEventListener('mouseleave',clearHighlight);
+    g.addEventListener('click',()=>{ doMove(half,dir); highlight(half.aff); });
+    controls.appendChild(g);
+  });
+});
+
+/* ---- 6. Win + buttons ---- */
+function win(){
+  document.getElementById('winMsg').textContent=`You sorted the hexagon in ${moves} moves.`;
+  document.getElementById('win').classList.add('show');
+}
+document.getElementById('newBtn').onclick=()=>{ document.getElementById('win').classList.remove('show'); scramble(); };
+document.getElementById('winBtn').onclick=()=>{ document.getElementById('win').classList.remove('show'); scramble(); };
+document.getElementById('undoBtn').onclick=undo;
+
+/* expose a tiny harness for self-tests */
+window.__hx={tris,AXES,HALVES,state:()=>state,isSolved,solvedCount,scramble,doMove};
+
+scramble();
+</script>
+</body>
+</html>
