@@ -7,7 +7,6 @@
   --btn-bg:#1c2440; --btn-bg-hover:#243056; --btn-border:#2a3350;
   --accent-ink:#08101f;           /* text on accent-colored buttons */
   --frame:#0a0d16;                /* big-triangle outline + outer hexagon */
-  --tri-stroke:#ffffff;           /* outline of a triangle while it moves */
   --win-overlay:rgba(8,11,20,.72);
   --panel-shadow:0 10px 40px rgba(0,0,0,.35);
   --card-shadow:0 20px 60px rgba(0,0,0,.5);
@@ -21,7 +20,6 @@
   --btn-bg:#eef1f8; --btn-bg-hover:#e2e8f6; --btn-border:#c9d2e6;
   --accent-ink:#ffffff;
   --frame:#3a4256;
-  --tri-stroke:#1c2333;
   --win-overlay:rgba(230,234,243,.72);
   --panel-shadow:0 10px 40px rgba(40,55,90,.14);
   --card-shadow:0 20px 60px rgba(40,55,90,.22);
@@ -35,7 +33,6 @@
   --btn-bg:#1c2440; --btn-bg-hover:#243056; --btn-border:#2a3350;
   --accent-ink:#08101f;
   --frame:#0a0d16;
-  --tri-stroke:#ffffff;
   --win-overlay:rgba(8,11,20,.72);
   --panel-shadow:0 10px 40px rgba(0,0,0,.35);
   --card-shadow:0 20px 60px rgba(0,0,0,.5);
@@ -51,7 +48,6 @@
     --btn-bg:#eef1f8; --btn-bg-hover:#e2e8f6; --btn-border:#c9d2e6;
     --accent-ink:#ffffff;
     --frame:#3a4256;
-    --tri-stroke:#1c2333;
     --win-overlay:rgba(230,234,243,.72);
     --panel-shadow:0 10px 40px rgba(40,55,90,.14);
     --card-shadow:0 20px 60px rgba(40,55,90,.22);
@@ -80,7 +76,6 @@ main{
 }
 svg#board{display:block; width:100%; max-width:492px; height:auto; touch-action:none}
 .tri{stroke:var(--line); stroke-width:.02; transition:fill .18s ease, opacity .12s ease}
-.tri.moved{stroke:var(--tri-stroke); stroke-width:.05}
 .tri.dim{opacity:.22}
 .frame{fill:none; stroke:var(--frame); stroke-width:.05; stroke-linejoin:round}
 .frame.outer{stroke-width:.07}
