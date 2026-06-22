@@ -475,7 +475,9 @@ HALVES.forEach(half=>{
     const path=document.createElementNS(SVGNS,'path');             // slim shafted arrow pointing +x (= shift direction, outward)
     path.setAttribute('d','M0 -.02 L.34 -.02 L.34 -.085 L.52 0 L.34 .085 L.34 .02 L0 .02 Z');
     const t=document.createElementNS(SVGNS,'title');
-    t.textContent=`Drag ${half.label.toLowerCase()} half ${dir===1?'forward':'back'}`;
+    const sdx=ux, sdy=-uy;                                        // arrow's screen-space pointing dir (svg y-down)
+    const arrowDir=Math.abs(sdx)>=Math.abs(sdy) ? (sdx>0?'right':'left') : (sdy>0?'down':'up');
+    t.textContent=`Drag ${half.label.toLowerCase()} half ${arrowDir}`;
     g.appendChild(hit); g.appendChild(path); g.appendChild(t);
     g.addEventListener('mouseenter',()=>highlight(half.aff));
     g.addEventListener('mouseleave',clearHighlight);
