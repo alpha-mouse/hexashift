@@ -107,6 +107,7 @@
     padding:10px 12px; text-align:center}
   .stat b{display:block; font-size:22px}
   .stat span{color:var(--muted); font-size:11px; text-transform:uppercase; letter-spacing:.6px}
+  .stats button{flex:1; padding:10px}
   .actions{display:flex; gap:10px; flex:1}
   button{font:inherit; color:var(--ink); cursor:pointer; border-radius:10px;
     border:1px solid var(--btn-border); background:var(--btn-bg); transition:.12s}
@@ -151,9 +152,6 @@
   #share a#shareLink{color:var(--accent); text-decoration:none; font-weight:600;
     word-break:break-all}
   #share a#shareLink:hover{text-decoration:underline}
-  #share code#shareCode{color:var(--muted); font-family:ui-monospace,Menlo,Consolas,monospace;
-    font-size:12px; background:var(--panel); border:1px solid var(--panel-border);
-    border-radius:7px; padding:2px 8px}
   #copyBtn{font-size:12px; padding:4px 10px; border-radius:8px}
   #copyBtn.copied{border-color:var(--good); color:var(--good)}
 
@@ -206,11 +204,11 @@
     <div id="hud">
       <div class="stats">
         <div class="stat"><b id="movesN">0</b><span>Moves</span></div>
-        <div class="stat"><b id="solvedN">0/6</b><span>Sectors solved</span></div>
+        <button id="newBtn">New game</button>
       </div>
       <div class="actions">
-        <button class="primary" id="newBtn">New game</button>
         <button id="undoBtn">Undo</button>
+        <button id="redoBtn">Redo</button>
       </div>
     </div>
 
@@ -236,9 +234,6 @@
       <div class="row">
         <a id="shareLink" href="#" rel="noopener">link</a>
         <button id="copyBtn" type="button">Copy link</button>
-      </div>
-      <div class="row">
-        <code id="shareCode"></code>
       </div>
     </div>
   </footer>
@@ -313,7 +308,7 @@ AXES.forEach((rows,ai)=>{
 
 /* ---- 3. Game state ---- */
 let state=new Array(24).fill(0);                            // color index per triangle
-let moves=0, history=[], busy=false;
+let moves=0, history=[], redoStack=[], busy=false;
 
 /* seeded RNG (mulberry32) — deterministic, reproducible boards */
 function mulberry32(a){
@@ -341,7 +336,7 @@ function applyHalf(half,dir){ half.rows.forEach(row=>rotateColors(row,dir)); }
 function doMove(half,dir){
   if(busy) return;
   applyHalf(half,dir);
-  history.push([half,dir]); moves++;
+  history.push([half,dir]); redoStack.length=0; moves++;
   refresh();
   flash(half.aff);
   if(isSolved()){ moves>0 && win(); }
@@ -349,8 +344,17 @@ function doMove(half,dir){
 function undo(){
   if(busy||!history.length) return;
   const [half,dir]=history.pop();
+  redoStack.push([half,dir]);
   applyHalf(half,-dir); moves=Math.max(0,moves-1);
   refresh(); flash(half.aff);
+}
+function redo(){
+  if(busy||!redoStack.length) return;
+  const [half,dir]=redoStack.pop();
+  history.push([half,dir]); moves++;
+  applyHalf(half,dir);
+  refresh(); flash(half.aff);
+  if(isSolved()){ moves>0 && win(); }
 }
 
 function isSolved(){
@@ -407,7 +411,7 @@ function scramble(s,n){
     }
   } while(isSolved());
   lastScrambleMoves=depth;
-  moves=0; history=[]; refresh();
+  moves=0; history=[]; redoStack=[]; refresh();
 }
 
 /* ---- 4. Rendering ---- */
@@ -433,7 +437,6 @@ hex.setAttribute('class','frame outer'); boardG.appendChild(hex);
 function refresh(){
   tris.forEach(t=>polys[t.id].setAttribute('fill', COLORS[state[t.id]]));
   document.getElementById('movesN').textContent=moves;
-  document.getElementById('solvedN').textContent=solvedCount()+'/6';
 }
 function highlight(ids){
   const set=new Set(ids);
@@ -494,6 +497,7 @@ function win(){
 document.getElementById('newBtn').onclick=()=>{ document.getElementById('win').classList.remove('show'); newGame(); };
 document.getElementById('winBtn').onclick=()=>{ document.getElementById('win').classList.remove('show'); newGame(); };
 document.getElementById('undoBtn').onclick=undo;
+document.getElementById('redoBtn').onclick=redo;
 document.getElementById('copyBtn').onclick=copyShareLink;
 
 /* ---- Theme control: light / system / dark, persisted in localStorage['hx-theme'] ---- */
@@ -577,11 +581,12 @@ function updateShareUI(){
   const code=encodeBoard(initialBoard);
   const url=shareUrl(code);
   const a=document.getElementById('shareLink');
-  const c=document.getElementById('shareCode');
   if(a){ a.href=url; a.textContent=url; }
-  if(c) c.textContent=code;
   const btn=document.getElementById('copyBtn');
   if(btn){ btn.classList.remove('copied'); btn.textContent='Copy link'; }
+  // Reflect the current board in the address bar (replace, don't grow history).
+  // NB: `history` is shadowed by the move-history array, so use window.history.
+  try{ window.history.replaceState(null,'',url); }catch(e){}
 }
 /* Start a fresh game. If `seed` is given, scramble with it; otherwise random.
    Either way, freeze the resulting board as the shareable initial board. */
@@ -622,7 +627,7 @@ function copyShareLink(){
 function setState(arr){
   if(!Array.isArray(arr)||arr.length!==24||arr.some(v=>!Number.isInteger(v)||v<0||v>5))
     throw new Error('setState needs a length-24 array of color indices 0..5');
-  state=arr.slice(); moves=0; history=[]; refresh();
+  state=arr.slice(); moves=0; history=[]; redoStack=[]; refresh();
 }
 function doMoveByIndex(i,dir){ doMove(HALVES[i], dir); }
 
@@ -684,7 +689,7 @@ window.__hx={
   tris, AXES, HALVES,
   state:()=>state, moves:()=>moves, history:()=>history, seed:()=>seed,
   isSolved, solvedCount, solvedBoard,
-  scramble, doMove, doMoveByIndex, setState,
+  scramble, doMove, doMoveByIndex, setState, undo, redo,
   mulberry32, test:runTests,
   getTheme, setTheme,
   getDifficulty, setDifficulty,

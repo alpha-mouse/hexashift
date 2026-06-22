@@ -5,7 +5,10 @@ hexagon so each of the 6 big sector-triangles is one solid color.
 ## Run / verify
 No build, no dependencies, no framework. Everything is inline in `index.html` (HTML + CSS + JS).
 - Open `index.html` in a browser, or serve the folder statically.
-- For Playwright MCP tests: run `http-server -p 15373 .` (Node) to serve the folder, then navigate to `http://127.0.0.1:15373`.
+- For Playwright MCP tests serve the folder (Node), then navigate to `http://127.0.0.1:15373`.
+  Use exactly one of these whitelisted commands (no `npx`, no extra flags — anything else prompts):
+  - Foreground: `http-server -p 15373 -c-1 .`
+  - Background w/ log: `http-server -p 15373 -c-1 . >/tmp/hx-server.log 2>&1 &`
 - Verify changes with the Playwright MCP browser tools (load the file, click controls, screenshot).
 - `window.__hx` exposes internals (`state`, `isSolved`, `solvedCount`, `scramble`, `doMove`) for self-tests.
 
@@ -23,3 +26,4 @@ No build, no dependencies, no framework. Everything is inline in `index.html` (H
 ## Conventions
 - Keep it dependency-free, vanilla JS.
 - Triangle `id` is the stable key linking geometry, `state`, and `polys[]`.
+- Commit messages: one terse sentence (no body).
