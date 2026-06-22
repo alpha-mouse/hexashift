@@ -1,5 +1,21 @@
 "use strict";
 
+/* ---- Difficulty ---- */
+const DIFF_KEY='hx-difficulty';
+const DIFF_OPTIONS=[1,2,3,4,5,8,13,21];
+const DIFF_DEFAULT=2;
+function getDifficulty(){
+  try{ const stored=parseInt(localStorage.getItem(DIFF_KEY),10);
+       if(DIFF_OPTIONS.includes(stored)) return stored; }catch(e){}
+  return DIFF_DEFAULT;
+}
+function setDifficulty(value){
+  value=parseInt(value,10);
+  if(!DIFF_OPTIONS.includes(value)) value=DIFF_DEFAULT;
+  try{ localStorage.setItem(DIFF_KEY,String(value)); }catch(e){}
+  return value;
+}
+
 /* ---- 4. Rendering ---- */
 const boardG=document.getElementById('boardG');
 const polys=[];
@@ -135,6 +151,11 @@ applyTheme(getTheme());
 /* ---- Difficulty selector ---- */
 const difficultySel=document.getElementById('difficultySel');
 if(difficultySel){
+  DIFF_OPTIONS.forEach(n=>{
+    const opt=document.createElement('option');
+    opt.value=String(n); opt.textContent=`Off by ${n}`;
+    difficultySel.appendChild(opt);
+  });
   difficultySel.value=String(getDifficulty());
   difficultySel.onchange=()=>{
     setDifficulty(difficultySel.value);
@@ -161,7 +182,7 @@ function updateShareUI(){
   try{ window.history.replaceState(null,'',url); }catch(e){}
 }
 function newGame(seedValue){
-  scramble(seedValue);
+  scramble(seedValue,getDifficulty());
   refresh();
   initialBoard=state.slice();
   updateShareUI();

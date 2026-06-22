@@ -106,38 +106,20 @@ function solvedCount(){
   return count;
 }
 
-const DIFF_KEY='hx-difficulty';
-const DIFF_OPTIONS=[1,2,3,5,8,35];
-const DIFF_DEFAULT=2;
-function getDifficulty(){
-  try{ const stored=parseInt(localStorage.getItem(DIFF_KEY),10);
-       if(DIFF_OPTIONS.includes(stored)) return stored; }catch(e){}
-  return DIFF_DEFAULT;
-}
-function setDifficulty(value){
-  value=parseInt(value,10);
-  if(!DIFF_OPTIONS.includes(value)) value=DIFF_DEFAULT;
-  try{ localStorage.setItem(DIFF_KEY,String(value)); }catch(e){}
-  return value;
-}
-let lastScrambleMoves=0;
-
 function scramble(seedValue,moveCount){
-  const scrambleDepth=(moveCount===undefined)?getDifficulty():moveCount;
   seed=(seedValue===undefined)?((Math.random()*2**32)>>>0):(seedValue>>>0);
   rng=mulberry32(seed);
-  console.log('[hexashift] scramble seed:',seed,'moves:',scrambleDepth);
+  console.log('[hexashift] scramble seed:',seed,'moves:',moveCount);
   do{
     state=solvedBoard();
     let prevHalfIndex=-1;
-    for(let i=0;i<scrambleDepth;i++){
+    for(let i=0;i<moveCount;i++){
       let halfIndex;
-      do{ halfIndex=(rng()*HALVES.length)|0; } while(scrambleDepth>1 && halfIndex===prevHalfIndex);
+      do{ halfIndex=(rng()*HALVES.length)|0; } while(moveCount>1 && halfIndex===prevHalfIndex);
       applyHalf(HALVES[halfIndex], rng()<0.5?1:-1);
       prevHalfIndex=halfIndex;
     }
   } while(isSolved());
-  lastScrambleMoves=scrambleDepth;
   moves=0; history=[]; redoStack=[];
 }
 
