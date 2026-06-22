@@ -155,6 +155,33 @@
   #copyBtn{font-size:12px; padding:4px 10px; border-radius:8px}
   #copyBtn.copied{border-color:var(--good); color:var(--good)}
 
+  /* ---- Help panel ---- */
+  #helpPanel{
+    width:100%; max-width:460px;
+    background:var(--panel); border:1px solid var(--panel-border); border-radius:16px;
+    padding:18px 20px; box-shadow:var(--panel-shadow);
+    display:none;
+  }
+  #helpPanel.open{display:block}
+  #helpPanel h2{margin:0 0 10px; font-size:16px; letter-spacing:.3px}
+  #helpPanel p{margin:0 0 10px; color:var(--muted); font-size:13px; line-height:1.55}
+  #helpPanel p:last-child{margin-bottom:0}
+  #helpPanel strong{color:var(--ink)}
+
+  /* ---- Help toggle button (fixed top-left) ---- */
+  #helpToggle{
+    position:fixed; top:12px; left:12px; z-index:10;
+    display:inline-flex; align-items:center; gap:5px;
+    padding:4px 10px 4px 7px;
+    background:var(--panel); border:1px solid var(--panel-border);
+    border-radius:10px; box-shadow:var(--panel-shadow);
+    font:13px/1 system-ui,Segoe UI,Roboto,sans-serif;
+    color:var(--muted); cursor:pointer; transition:.12s;
+  }
+  #helpToggle:hover{border-color:var(--accent); background:var(--btn-bg-hover); color:var(--ink)}
+  #helpToggle svg{width:15px; height:15px; display:block; fill:none;
+    stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; flex-shrink:0}
+
   /* ---- Theme control (segmented light / system / dark) ---- */
   #themeCtl{
     position:fixed; top:12px; right:12px; z-index:10;
@@ -176,6 +203,11 @@
 </style>
 </head>
 <body>
+  <button id="helpToggle" type="button" aria-expanded="false" aria-controls="helpPanel">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+    How to play
+  </button>
+
   <div id="themeCtl" role="group" aria-label="Theme">
     <button id="themeLight" type="button" title="Light theme" aria-label="Light theme">
       <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
@@ -190,10 +222,19 @@
 
   <header>
     <h1>Hexashift</h1>
-    <p>Sort all 24 triangles so each of the six big triangles is one solid color.</p>
   </header>
 
   <main>
+    <div id="helpPanel" role="region" aria-label="How to play">
+      <h2>How to play Hexashift</h2>
+      <p><strong>Goal:</strong> Arrange all 24 colored triangles so that each of the six big sector-triangles is one solid color.</p>
+      <p><strong>Moving pieces:</strong> The board is divided into six <em>halves</em> (two rows each) along three axes. Click an arrow outside the hexagon to slide that half one triangle along its axis. Triangles that run off one end wrap around to the other.</p>
+      <p><strong>Hovering</strong> an arrow highlights the triangles that will move.</p>
+      <p><strong>Undo / Redo</strong> let you step back and forward through your moves. <strong>New game</strong> scrambles a fresh puzzle.</p>
+      <p><strong>Difficulty</strong> sets how many scramble moves are applied at the start — fewer moves means a simpler puzzle closer to the solved state.</p>
+      <p>You can also <strong>share a puzzle</strong> by copying the link at the bottom — it encodes the exact starting board so a friend can try the same scramble.</p>
+    </div>
+
     <div id="boardWrap">
       <svg id="board" viewBox="-2.6 -2.45 5.2 4.9" aria-label="Hexashift board">
         <g transform="scale(1,-1)" id="boardG"></g>
@@ -226,9 +267,6 @@
   </main>
 
   <footer>
-    Click an arrow to drag that half of the board (its two rows) one triangle along its axis.
-    Triangles that run off one end wrap around to the other.
-
     <div id="share">
       <span class="lbl">Share this puzzle</span>
       <div class="row">
@@ -699,6 +737,26 @@ window.__hx={
   fingerprint:()=>encodeBoard(initialBoard),
   newGame, loadFingerprint
 };
+
+/* ---- Help panel: show by default on first visit, toggle via button ---- */
+const HELP_KEY='hx-help-seen';
+const helpPanel=document.getElementById('helpPanel');
+const helpToggle=document.getElementById('helpToggle');
+function setHelpOpen(open){
+  helpPanel.classList.toggle('open',open);
+  helpToggle.setAttribute('aria-expanded',String(open));
+}
+helpToggle.addEventListener('click',()=>{
+  const next=!helpPanel.classList.contains('open');
+  setHelpOpen(next);
+  try{ localStorage.setItem(HELP_KEY,'1'); }catch(e){}
+});
+// Show on first visit (no localStorage entry yet)
+(function(){
+  let seen=false;
+  try{ seen=!!localStorage.getItem(HELP_KEY); }catch(e){}
+  if(!seen) setHelpOpen(true);
+})();
 
 /* ---- Boot: restore a shared board from the URL, else random scramble ---- */
 (function boot(){
