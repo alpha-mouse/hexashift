@@ -64,18 +64,21 @@ body{
   color:var(--ink); font:15px/1.45 system-ui,Segoe UI,Roboto,sans-serif;
   display:flex; flex-direction:column; align-items:center; min-height:100%;
 }
-header{text-align:center; padding:18px 12px 4px}
-header h1{margin:0; font-size:26px; letter-spacing:.5px}
+header{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:12px 0; width:100%; max-width:520px; gap:8px;
+}
+header h1{margin:0; font-size:26px; letter-spacing:.5px; text-align:center; flex:1}
 header p{margin:4px 0 0; color:var(--muted); font-size:13px}
 main{
-  display:flex; flex-direction:column; gap:18px; align-items:center;
-  justify-content:flex-start; padding:14px; width:100%; max-width:980px;
+  display:flex; flex-direction:column; gap:18px;
+  padding:0 14px 14px; width:100%; max-width:520px;
 }
 #boardWrap{
   background:var(--panel); border:1px solid var(--panel-border); border-radius:16px;
   padding:14px; box-shadow:var(--panel-shadow);
 }
-svg#board{display:block; width:min(78vw,460px); height:auto; touch-action:none}
+svg#board{display:block; width:100%; max-width:492px; height:auto; touch-action:none}
 .tri{stroke:var(--line); stroke-width:.02; transition:fill .18s ease, opacity .12s ease}
 .tri.moved{stroke:var(--tri-stroke); stroke-width:.05}
 .tri.dim{opacity:.22}
@@ -83,7 +86,7 @@ svg#board{display:block; width:min(78vw,460px); height:auto; touch-action:none}
 .frame.outer{stroke-width:.07}
 
 #hud{display:flex; gap:14px; align-items:stretch; flex-wrap:wrap;
-  justify-content:center; width:100%; max-width:460px}
+  justify-content:center; width:100%;}
 .stats{display:flex; gap:10px; flex:1}
 .stat{flex:1; background:var(--panel); border:1px solid var(--panel-border); border-radius:12px;
   padding:10px 12px; text-align:center}
@@ -100,7 +103,7 @@ button:active{transform:translateY(1px)}
 
 /* ---- Difficulty selector ---- */
 #difficulty{display:flex; flex-direction:column; gap:6px; align-items:center;
-  width:100%; max-width:460px}
+  width:100%;}
 #difficulty label{color:var(--muted); font-size:11px; text-transform:uppercase;
   letter-spacing:.6px}
 #difficulty select{
@@ -139,7 +142,7 @@ footer{color:var(--muted); font-size:12px; padding:6px 0 22px; text-align:center
 
 /* ---- Help panel ---- */
 #helpPanel{
-  width:100%; max-width:460px;
+  width:100%;
   background:var(--panel); border:1px solid var(--panel-border); border-radius:16px;
   padding:18px 20px; box-shadow:var(--panel-shadow);
   display:none;
@@ -155,13 +158,12 @@ footer{color:var(--muted); font-size:12px; padding:6px 0 22px; text-align:center
 }
 #helpPanel strong{color:var(--ink)}
 
-/* ---- Help toggle button (fixed top-left) ---- */
+/* ---- Help toggle button (inline in header) ---- */
 #helpToggle{
-  position:fixed; top:12px; left:12px; z-index:10;
-  display:inline-flex; align-items:center; gap:5px;
+  display:inline-flex; align-items:center; gap:5px; flex-shrink:0;
   padding:4px 10px 4px 7px;
   background:var(--panel); border:1px solid var(--panel-border);
-  border-radius:10px; box-shadow:var(--panel-shadow);
+  border-radius:10px;
   font:13px/1 system-ui,Segoe UI,Roboto,sans-serif;
   color:var(--muted); cursor:pointer; transition:.12s;
 }
@@ -171,10 +173,9 @@ footer{color:var(--muted); font-size:12px; padding:6px 0 22px; text-align:center
 
 /* ---- Theme control (segmented light / system / dark) ---- */
 #themeCtl{
-  position:fixed; top:12px; right:12px; z-index:10;
-  display:inline-flex; gap:2px; padding:3px;
+  display:inline-flex; gap:2px; padding:3px; flex-shrink:0;
   background:var(--panel); border:1px solid var(--panel-border);
-  border-radius:10px; box-shadow:var(--panel-shadow);
+  border-radius:10px;
 }
 #themeCtl button{
   display:grid; place-items:center; width:30px; height:28px; padding:0;
