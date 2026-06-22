@@ -1,0 +1,184 @@
+/* ---- DARK palette (default) ---- */
+:root{
+  --bg:#0f1320; --panel:#161b2c; --ink:#e7ecf5; --muted:#8b95ad;
+  --line:#0a0d16; --accent:#5b8cff; --good:#36d399;
+  --glow:#1b2236;                 /* radial highlight at top of page bg */
+  --panel-border:#222a40;         /* panel / stat card borders */
+  --btn-bg:#1c2440; --btn-bg-hover:#243056; --btn-border:#2a3350;
+  --accent-ink:#08101f;           /* text on accent-colored buttons */
+  --frame:#0a0d16;                /* big-triangle outline + outer hexagon */
+  --tri-stroke:#ffffff;           /* outline of a triangle while it moves */
+  --win-overlay:rgba(8,11,20,.72);
+  --panel-shadow:0 10px 40px rgba(0,0,0,.35);
+  --card-shadow:0 20px 60px rgba(0,0,0,.5);
+}
+/* ---- LIGHT palette ---- */
+:root[data-theme="light"]{
+  --bg:#eef1f7; --panel:#ffffff; --ink:#1c2333; --muted:#5d6781;
+  --line:#c4cbdc; --accent:#3a63d8; --good:#1ba974;
+  --glow:#ffffff;
+  --panel-border:#d4dae9;
+  --btn-bg:#eef1f8; --btn-bg-hover:#e2e8f6; --btn-border:#c9d2e6;
+  --accent-ink:#ffffff;
+  --frame:#3a4256;
+  --tri-stroke:#1c2333;
+  --win-overlay:rgba(230,234,243,.72);
+  --panel-shadow:0 10px 40px rgba(40,55,90,.14);
+  --card-shadow:0 20px 60px rgba(40,55,90,.22);
+}
+/* ---- DARK palette, explicit (data-theme="dark" forces dark even if OS is light) ---- */
+:root[data-theme="dark"]{
+  --bg:#0f1320; --panel:#161b2c; --ink:#e7ecf5; --muted:#8b95ad;
+  --line:#0a0d16; --accent:#5b8cff; --good:#36d399;
+  --glow:#1b2236;
+  --panel-border:#222a40;
+  --btn-bg:#1c2440; --btn-bg-hover:#243056; --btn-border:#2a3350;
+  --accent-ink:#08101f;
+  --frame:#0a0d16;
+  --tri-stroke:#ffffff;
+  --win-overlay:rgba(8,11,20,.72);
+  --panel-shadow:0 10px 40px rgba(0,0,0,.35);
+  --card-shadow:0 20px 60px rgba(0,0,0,.5);
+}
+/* ---- SYSTEM mode: no data-theme set => follow OS. Dark is the :root default,
+       so we only need to supply the LIGHT overrides when the OS prefers light. ---- */
+@media (prefers-color-scheme: light){
+  :root:not([data-theme]){
+    --bg:#eef1f7; --panel:#ffffff; --ink:#1c2333; --muted:#5d6781;
+    --line:#c4cbdc; --accent:#3a63d8; --good:#1ba974;
+    --glow:#ffffff;
+    --panel-border:#d4dae9;
+    --btn-bg:#eef1f8; --btn-bg-hover:#e2e8f6; --btn-border:#c9d2e6;
+    --accent-ink:#ffffff;
+    --frame:#3a4256;
+    --tri-stroke:#1c2333;
+    --win-overlay:rgba(230,234,243,.72);
+    --panel-shadow:0 10px 40px rgba(40,55,90,.14);
+    --card-shadow:0 20px 60px rgba(40,55,90,.22);
+  }
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{
+  background:radial-gradient(1200px 800px at 50% -10%, var(--glow) 0, var(--bg) 60%), var(--bg);
+  color:var(--ink); font:15px/1.45 system-ui,Segoe UI,Roboto,sans-serif;
+  display:flex; flex-direction:column; align-items:center; min-height:100%;
+}
+header{text-align:center; padding:18px 12px 4px}
+header h1{margin:0; font-size:26px; letter-spacing:.5px}
+header p{margin:4px 0 0; color:var(--muted); font-size:13px}
+main{
+  display:flex; flex-direction:column; gap:18px; align-items:center;
+  justify-content:flex-start; padding:14px; width:100%; max-width:980px;
+}
+#boardWrap{
+  background:var(--panel); border:1px solid var(--panel-border); border-radius:16px;
+  padding:14px; box-shadow:var(--panel-shadow);
+}
+svg#board{display:block; width:min(78vw,460px); height:auto; touch-action:none}
+.tri{stroke:var(--line); stroke-width:.02; transition:fill .18s ease, opacity .12s ease}
+.tri.moved{stroke:var(--tri-stroke); stroke-width:.05}
+.tri.dim{opacity:.22}
+.frame{fill:none; stroke:var(--frame); stroke-width:.05; stroke-linejoin:round}
+.frame.outer{stroke-width:.07}
+
+#hud{display:flex; gap:14px; align-items:stretch; flex-wrap:wrap;
+  justify-content:center; width:100%; max-width:460px}
+.stats{display:flex; gap:10px; flex:1}
+.stat{flex:1; background:var(--panel); border:1px solid var(--panel-border); border-radius:12px;
+  padding:10px 12px; text-align:center}
+.stat b{display:block; font-size:22px}
+.stat span{color:var(--muted); font-size:11px; text-transform:uppercase; letter-spacing:.6px}
+.stats button{flex:1; padding:10px}
+.actions{display:flex; gap:10px; flex:1}
+button{font:inherit; color:var(--ink); cursor:pointer; border-radius:10px;
+  border:1px solid var(--btn-border); background:var(--btn-bg); transition:.12s}
+button:hover{border-color:var(--accent); background:var(--btn-bg-hover)}
+button:active{transform:translateY(1px)}
+.actions button{flex:1; padding:10px}
+.actions button.primary{background:var(--accent); border-color:var(--accent); color:var(--accent-ink); font-weight:600}
+
+/* ---- Difficulty selector ---- */
+#difficulty{display:flex; flex-direction:column; gap:6px; align-items:center;
+  width:100%; max-width:460px}
+#difficulty label{color:var(--muted); font-size:11px; text-transform:uppercase;
+  letter-spacing:.6px}
+#difficulty select{
+  font:inherit; color:var(--ink); cursor:pointer; width:100%;
+  padding:9px 12px; border-radius:10px;
+  border:1px solid var(--btn-border); background:var(--btn-bg); transition:.12s;
+}
+#difficulty select:hover{border-color:var(--accent); background:var(--btn-bg-hover)}
+#difficulty select:focus{outline:none; border-color:var(--accent)}
+#difficulty select option{background:var(--panel); color:var(--ink)}
+
+.ctrl{cursor:pointer}
+.ctrl path{fill:var(--muted); transition:fill .12s ease}
+.ctrl:hover path{fill:var(--accent)}
+.ctrl circle{fill:transparent}
+
+#win{position:fixed; inset:0; background:var(--win-overlay); display:none;
+  place-items:center; backdrop-filter:blur(3px)}
+#win.show{display:grid}
+#win .card{background:var(--panel); border:1px solid var(--btn-border); border-radius:16px;
+  padding:26px 30px; text-align:center; box-shadow:var(--card-shadow)}
+#win h2{margin:0 0 6px; color:var(--good); font-size:24px}
+#win p{margin:0 0 16px; color:var(--muted)}
+footer{color:var(--muted); font-size:12px; padding:6px 0 22px; text-align:center; max-width:620px}
+
+/* ---- Shareable fingerprint of the initial board ---- */
+#share{display:flex; flex-direction:column; align-items:center; gap:6px;
+  margin-top:14px; padding-top:12px; border-top:1px solid var(--panel-border)}
+#share .lbl{color:var(--muted); font-size:11px; text-transform:uppercase; letter-spacing:.6px}
+#share .row{display:flex; align-items:center; gap:8px; flex-wrap:wrap; justify-content:center}
+#share a#shareLink{color:var(--accent); text-decoration:none; font-weight:600;
+  word-break:break-all}
+#share a#shareLink:hover{text-decoration:underline}
+#copyBtn{font-size:12px; padding:4px 10px; border-radius:8px}
+#copyBtn.copied{border-color:var(--good); color:var(--good)}
+
+/* ---- Help panel ---- */
+#helpPanel{
+  width:100%; max-width:460px;
+  background:var(--panel); border:1px solid var(--panel-border); border-radius:16px;
+  padding:18px 20px; box-shadow:var(--panel-shadow);
+  display:none;
+}
+#helpPanel.open{display:block}
+#helpPanel h2{margin:0 0 10px; font-size:16px; letter-spacing:.3px}
+#helpPanel p{margin:0 0 10px; color:var(--muted); font-size:13px; line-height:1.55}
+#helpPanel p:last-child{margin-bottom:0}
+#helpPanel strong{color:var(--ink)}
+
+/* ---- Help toggle button (fixed top-left) ---- */
+#helpToggle{
+  position:fixed; top:12px; left:12px; z-index:10;
+  display:inline-flex; align-items:center; gap:5px;
+  padding:4px 10px 4px 7px;
+  background:var(--panel); border:1px solid var(--panel-border);
+  border-radius:10px; box-shadow:var(--panel-shadow);
+  font:13px/1 system-ui,Segoe UI,Roboto,sans-serif;
+  color:var(--muted); cursor:pointer; transition:.12s;
+}
+#helpToggle:hover{border-color:var(--accent); background:var(--btn-bg-hover); color:var(--ink)}
+#helpToggle svg{width:15px; height:15px; display:block; fill:none;
+  stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; flex-shrink:0}
+
+/* ---- Theme control (segmented light / system / dark) ---- */
+#themeCtl{
+  position:fixed; top:12px; right:12px; z-index:10;
+  display:inline-flex; gap:2px; padding:3px;
+  background:var(--panel); border:1px solid var(--panel-border);
+  border-radius:10px; box-shadow:var(--panel-shadow);
+}
+#themeCtl button{
+  display:grid; place-items:center; width:30px; height:28px; padding:0;
+  border:1px solid transparent; background:transparent; border-radius:7px;
+  color:var(--muted); line-height:0;
+}
+#themeCtl button:hover{background:var(--btn-bg-hover); border-color:transparent; color:var(--ink)}
+#themeCtl button[aria-pressed="true"]{
+  background:var(--accent); border-color:var(--accent); color:var(--accent-ink);
+}
+#themeCtl button svg{width:16px; height:16px; display:block; fill:none;
+  stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round}
