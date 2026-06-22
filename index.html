@@ -129,6 +129,20 @@
   #win p{margin:0 0 16px; color:var(--muted)}
   footer{color:var(--muted); font-size:12px; padding:6px 0 22px; text-align:center; max-width:620px}
 
+  /* ---- Shareable fingerprint of the initial board ---- */
+  #share{display:flex; flex-direction:column; align-items:center; gap:6px;
+    margin-top:14px; padding-top:12px; border-top:1px solid var(--panel-border)}
+  #share .lbl{color:var(--muted); font-size:11px; text-transform:uppercase; letter-spacing:.6px}
+  #share .row{display:flex; align-items:center; gap:8px; flex-wrap:wrap; justify-content:center}
+  #share a#shareLink{color:var(--accent); text-decoration:none; font-weight:600;
+    word-break:break-all}
+  #share a#shareLink:hover{text-decoration:underline}
+  #share code#shareCode{color:var(--muted); font-family:ui-monospace,Menlo,Consolas,monospace;
+    font-size:12px; background:var(--panel); border:1px solid var(--panel-border);
+    border-radius:7px; padding:2px 8px}
+  #copyBtn{font-size:12px; padding:4px 10px; border-radius:8px}
+  #copyBtn.copied{border-color:var(--good); color:var(--good)}
+
   /* ---- Theme control (segmented light / system / dark) ---- */
   #themeCtl{
     position:fixed; top:12px; right:12px; z-index:10;
@@ -190,6 +204,17 @@
   <footer>
     Click an arrow to drag that half of the board (its two rows) one triangle along its axis.
     Triangles that run off one end wrap around to the other.
+
+    <div id="share">
+      <span class="lbl">Share this puzzle</span>
+      <div class="row">
+        <a id="shareLink" href="#" rel="noopener">link</a>
+        <button id="copyBtn" type="button">Copy link</button>
+      </div>
+      <div class="row">
+        <code id="shareCode"></code>
+      </div>
+    </div>
   </footer>
 
   <div id="win"><div class="card">
@@ -411,9 +436,10 @@ function win(){
   document.getElementById('winMsg').textContent=`You sorted the hexagon in ${moves} moves.`;
   document.getElementById('win').classList.add('show');
 }
-document.getElementById('newBtn').onclick=()=>{ document.getElementById('win').classList.remove('show'); scramble(); };
-document.getElementById('winBtn').onclick=()=>{ document.getElementById('win').classList.remove('show'); scramble(); };
+document.getElementById('newBtn').onclick=()=>{ document.getElementById('win').classList.remove('show'); newGame(); };
+document.getElementById('winBtn').onclick=()=>{ document.getElementById('win').classList.remove('show'); newGame(); };
 document.getElementById('undoBtn').onclick=undo;
+document.getElementById('copyBtn').onclick=copyShareLink;
 
 /* ---- Theme control: light / system / dark, persisted in localStorage['hx-theme'] ---- */
 const THEME_KEY='hx-theme';
@@ -437,6 +463,94 @@ themeBtns.light.onclick =()=>setTheme('light');
 themeBtns.system.onclick=()=>setTheme('system');
 themeBtns.dark.onclick  =()=>setTheme('dark');
 applyTheme(getTheme());                                           // reflect current choice in the control
+
+/* ---- Shareable fingerprint of the initial (scrambled) board ----
+   A board = 24 color digits 0..5. Read as a base-6 integer it fits in ~62 bits
+   (6^24 ≈ 4.7e18), so we pack it into a BigInt and emit it in a URL-safe base-64
+   alphabet (base64url chars, fixed width). Round-trips exactly. */
+const FP_PARAM='g';
+const FP_ALPHABET='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_'; // base64url
+const FP_LEN=11;                                                  // ceil(log64(6^24)) = 11 chars
+const FP_INDEX=(()=>{ const m={}; for(let i=0;i<FP_ALPHABET.length;i++) m[FP_ALPHABET[i]]=i; return m; })();
+
+function isBoard(arr){
+  return Array.isArray(arr)&&arr.length===24&&arr.every(v=>Number.isInteger(v)&&v>=0&&v<=5);
+}
+function encodeBoard(board){
+  if(!isBoard(board)) throw new Error('encodeBoard needs a length-24 array of 0..5');
+  let n=0n;
+  for(let i=0;i<24;i++) n=n*6n+BigInt(board[i]);            // base-6 -> BigInt (digit 0 = most significant)
+  let out='';
+  for(let i=0;i<FP_LEN;i++){ out=FP_ALPHABET[Number(n&63n)]+out; n>>=6n; } // fixed-width base-64
+  return out;
+}
+function decodeBoard(code){
+  if(typeof code!=='string') return null;
+  if(code.length!==FP_LEN) return null;
+  let n=0n;
+  for(const ch of code){
+    const v=FP_INDEX[ch];
+    if(v===undefined) return null;                          // invalid character
+    n=(n<<6n)|BigInt(v);
+  }
+  const board=new Array(24);
+  for(let i=23;i>=0;i--){ board[i]=Number(n%6n); n/=6n; }   // BigInt -> base-6 digits
+  if(n!==0n) return null;                                   // overflow: code encodes a number too large for 24 digits
+  return isBoard(board)?board:null;
+}
+
+/* The board the link should reproduce: the scrambled STARTING position of the
+   current game (frozen at new-game time, unaffected by subsequent moves). */
+let initialBoard=state.slice();
+function shareUrl(code){
+  const u=new URL(location.href);
+  u.searchParams.set(FP_PARAM, code);
+  return u.toString();
+}
+function updateShareUI(){
+  const code=encodeBoard(initialBoard);
+  const url=shareUrl(code);
+  const a=document.getElementById('shareLink');
+  const c=document.getElementById('shareCode');
+  if(a){ a.href=url; a.textContent=url; }
+  if(c) c.textContent=code;
+  const btn=document.getElementById('copyBtn');
+  if(btn){ btn.classList.remove('copied'); btn.textContent='Copy link'; }
+}
+/* Start a fresh game. If `seed` is given, scramble with it; otherwise random.
+   Either way, freeze the resulting board as the shareable initial board. */
+function newGame(seed){
+  scramble(seed);
+  initialBoard=state.slice();
+  updateShareUI();
+}
+/* Load the exact board encoded by `code` as the starting position. Returns true
+   on success; false (no state change) if the code is invalid. */
+function loadFingerprint(code){
+  const board=decodeBoard(code);
+  if(!board) return false;
+  setState(board);
+  initialBoard=board.slice();
+  updateShareUI();
+  return true;
+}
+function copyShareLink(){
+  const url=shareUrl(encodeBoard(initialBoard));
+  const btn=document.getElementById('copyBtn');
+  const mark=()=>{ if(btn){ btn.classList.add('copied'); btn.textContent='Copied!';
+    setTimeout(()=>{ btn.classList.remove('copied'); btn.textContent='Copy link'; },1400); } };
+  const fallback=()=>{
+    try{
+      const ta=document.createElement('textarea');
+      ta.value=url; ta.style.position='fixed'; ta.style.opacity='0';
+      document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+      document.body.removeChild(ta); mark();
+    }catch(e){}
+  };
+  if(navigator.clipboard&&navigator.clipboard.writeText)
+    navigator.clipboard.writeText(url).then(mark, fallback);
+  else fallback();
+}
 
 /* ---- harness helpers (scriptable, deterministic) ---- */
 function setState(arr){
@@ -477,6 +591,20 @@ function runTests(){
   ok('one triangle off: not solved', !isSolved());
   ok('one triangle off: solvedCount()===5', solvedCount()===5);
 
+  // T4: fingerprint encode/decode round-trips exactly, on a few representative boards
+  let t4=true;
+  const samples=[solvedBoard(),
+                 new Array(24).fill(0), new Array(24).fill(5),
+                 Array.from({length:24},(_,i)=>i%6)];
+  const r2=mulberry32(0x5EED5);
+  for(let k=0;k<8;k++) samples.push(Array.from({length:24},()=>(r2()*6)|0));
+  for(const b of samples){ const c=encodeBoard(b); const d=decodeBoard(c);
+    if(!d||!eqArr(d,b)||c.length!==FP_LEN) t4=false; }
+  ok('fingerprint encode/decode round-trips', t4);
+  // T5: invalid fingerprints decode to null (no throw)
+  ok('bad fingerprints -> null', decodeBoard('')===null && decodeBoard('!!!!!!!!!!!')===null
+       && decodeBoard('zzz')===null && decodeBoard('zzzzzzzzzzzz')===null && decodeBoard(null)===null);
+
   state=snap.state; moves=snap.moves; history=snap.history; seed=snap.seed; refresh();
 
   const passed=results.filter(x=>x.pass).length;
@@ -492,10 +620,20 @@ window.__hx={
   isSolved, solvedCount, solvedBoard,
   scramble, doMove, doMoveByIndex, setState,
   mulberry32, test:runTests,
-  getTheme, setTheme
+  getTheme, setTheme,
+  encodeBoard, decodeBoard,
+  initialBoard:()=>initialBoard.slice(),
+  fingerprint:()=>encodeBoard(initialBoard),
+  newGame, loadFingerprint
 };
 
-scramble();
+/* ---- Boot: restore a shared board from the URL, else random scramble ---- */
+(function boot(){
+  let code=null;
+  try{ code=new URL(location.href).searchParams.get(FP_PARAM); }catch(e){}
+  if(code && loadFingerprint(code)) return;                 // valid fingerprint -> reproduce it exactly
+  newGame();                                                // no/invalid code -> fresh random game
+})();
 if(/(?:^|[?&])test(?:$|[&=])/.test(location.search)) runTests();
 </script>
 </body>
