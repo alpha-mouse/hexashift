@@ -43,10 +43,10 @@ No build step, no dependencies, no framework — everything is inline in `index.
 - **Or serve the folder statically**, e.g.:
 
   ```
-  http-server -p 15373 -c-1 .
+  http-server .
   ```
 
-  then visit `http://127.0.0.1:15373`.
+  then visit `http://127.0.0.1:8080`.
 
 ## Developer
 
