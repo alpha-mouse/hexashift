@@ -1,5 +1,3 @@
-[ ] Add an inline svg hexagonal colored favicon
-
 [ ] Implement dark/light mode support with css variables, and a small control to switch between light/dark/system modes.
 
 [ ] Add a mode selector that will have options "Off by 1", "Off by 2",  "Off by 3", "Off by 5", "Off by 8", "Chaotic", that will switch between how much the initial board is scrambled, by 1, 2, 3 etc moves. Chaotic will be 35.
