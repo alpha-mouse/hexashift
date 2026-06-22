@@ -161,3 +161,13 @@ function setState(newBoard){
   state=newBoard.slice(); moves=0; history=[]; redoStack=[]; refresh();
 }
 function doMoveByIndex(halfIndex,dir){ doMove(HALVES[halfIndex], dir); }
+
+if (typeof module !== 'undefined') {
+  module.exports = {
+    HALVES, tris,
+    scramble, applyHalf, isSolved, solvedBoard,
+    encodeBoard, decodeBoard, mulberry32,
+    getState:    () => state.slice(),
+    setRawState: s  => { state = s.slice(); moves = 0; history = []; redoStack = []; },
+  };
+}
