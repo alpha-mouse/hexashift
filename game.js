@@ -108,7 +108,7 @@ function solvedCount(){
 
 const DIFF_KEY='hx-difficulty';
 const DIFF_OPTIONS=[1,2,3,5,8,35];
-const DIFF_DEFAULT=3;
+const DIFF_DEFAULT=2;
 function getDifficulty(){
   try{ const stored=parseInt(localStorage.getItem(DIFF_KEY),10);
        if(DIFF_OPTIONS.includes(stored)) return stored; }catch(e){}
