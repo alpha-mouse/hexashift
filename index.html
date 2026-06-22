@@ -115,6 +115,20 @@
   .actions button{flex:1; padding:10px}
   .actions button.primary{background:var(--accent); border-color:var(--accent); color:var(--accent-ink); font-weight:600}
 
+  /* ---- Difficulty selector ---- */
+  #difficulty{display:flex; flex-direction:column; gap:6px; align-items:center;
+    width:100%; max-width:460px}
+  #difficulty label{color:var(--muted); font-size:11px; text-transform:uppercase;
+    letter-spacing:.6px}
+  #difficulty select{
+    font:inherit; color:var(--ink); cursor:pointer; width:100%;
+    padding:9px 12px; border-radius:10px;
+    border:1px solid var(--btn-border); background:var(--btn-bg); transition:.12s;
+  }
+  #difficulty select:hover{border-color:var(--accent); background:var(--btn-bg-hover)}
+  #difficulty select:focus{outline:none; border-color:var(--accent)}
+  #difficulty select option{background:var(--panel); color:var(--ink)}
+
   .ctrl{cursor:pointer}
   .ctrl path{fill:var(--muted); transition:fill .12s ease}
   .ctrl:hover path{fill:var(--accent)}
@@ -198,6 +212,18 @@
         <button class="primary" id="newBtn">New game</button>
         <button id="undoBtn">Undo</button>
       </div>
+    </div>
+
+    <div id="difficulty">
+      <label for="difficultySel">Difficulty</label>
+      <select id="difficultySel" aria-label="Difficulty">
+        <option value="1">Off by 1</option>
+        <option value="2">Off by 2</option>
+        <option value="3">Off by 3</option>
+        <option value="5">Off by 5</option>
+        <option value="8">Off by 8</option>
+        <option value="35">Chaotic</option>
+      </select>
     </div>
   </main>
 
@@ -343,17 +369,44 @@ function solvedCount(){
   return c;
 }
 
-function scramble(s){
+/* ---- Difficulty: option label -> number of random half-moves applied ----
+   Persisted in localStorage['hx-difficulty'] as the move count. */
+const DIFF_KEY='hx-difficulty';
+const DIFF_OPTIONS=[1,2,3,5,8,35];        // valid scramble depths (see selector)
+const DIFF_DEFAULT=3;                      // "Off by 3" — easy but not trivial
+function getDifficulty(){
+  try{ const v=parseInt(localStorage.getItem(DIFF_KEY),10);
+       if(DIFF_OPTIONS.includes(v)) return v; }catch(e){}
+  return DIFF_DEFAULT;
+}
+function setDifficulty(n){
+  n=parseInt(n,10);
+  if(!DIFF_OPTIONS.includes(n)) n=DIFF_DEFAULT;
+  try{ localStorage.setItem(DIFF_KEY,String(n)); }catch(e){}
+  const sel=document.getElementById('difficultySel');
+  if(sel) sel.value=String(n);             // keep the UI in sync
+  return n;
+}
+let lastScrambleMoves=0;                    // how many half-moves the last scramble applied
+
+/* Apply N random half-moves to a solved board. N defaults to the current
+   difficulty. Re-rolls until the result is not already solved. */
+function scramble(s,n){
+  const depth=(n===undefined)?getDifficulty():n;
   seed=(s===undefined)?((Math.random()*2**32)>>>0):(s>>>0);
   rng=mulberry32(seed);
-  console.log('[hexashift] scramble seed:',seed);
-  state=solvedBoard();
+  console.log('[hexashift] scramble seed:',seed,'moves:',depth);
   do{
-    for(let i=0;i<2;i++){
-      const half=HALVES[(rng()*HALVES.length)|0];
-      applyHalf(half, rng()<0.5?1:-1);
+    state=solvedBoard();
+    let prev=-1;                            // skip immediately undoing the previous half (light cancellation guard)
+    for(let i=0;i<depth;i++){
+      let hi;
+      do{ hi=(rng()*HALVES.length)|0; } while(depth>1 && hi===prev);
+      applyHalf(HALVES[hi], rng()<0.5?1:-1);
+      prev=hi;
     }
   } while(isSolved());
+  lastScrambleMoves=depth;
   moves=0; history=[]; refresh();
 }
 
@@ -463,6 +516,17 @@ themeBtns.light.onclick =()=>setTheme('light');
 themeBtns.system.onclick=()=>setTheme('system');
 themeBtns.dark.onclick  =()=>setTheme('dark');
 applyTheme(getTheme());                                           // reflect current choice in the control
+
+/* ---- Difficulty selector: persist + start a fresh game on change ---- */
+const difficultySel=document.getElementById('difficultySel');
+if(difficultySel){
+  difficultySel.value=String(getDifficulty());                   // reflect persisted choice
+  difficultySel.onchange=()=>{
+    setDifficulty(difficultySel.value);                          // persist the new depth
+    document.getElementById('win').classList.remove('show');
+    newGame();                                                   // immediately start a game at this depth (updates share link)
+  };
+}
 
 /* ---- Shareable fingerprint of the initial (scrambled) board ----
    A board = 24 color digits 0..5. Read as a base-6 integer it fits in ~62 bits
@@ -621,6 +685,8 @@ window.__hx={
   scramble, doMove, doMoveByIndex, setState,
   mulberry32, test:runTests,
   getTheme, setTheme,
+  getDifficulty, setDifficulty,
+  scrambleMoves:()=>lastScrambleMoves, DIFF_OPTIONS:DIFF_OPTIONS.slice(),
   encodeBoard, decodeBoard,
   initialBoard:()=>initialBoard.slice(),
   fingerprint:()=>encodeBoard(initialBoard),
