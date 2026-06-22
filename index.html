@@ -167,6 +167,23 @@ AXES.forEach((rows,ai)=>{
 let state=new Array(24).fill(0);                            // color index per triangle
 let moves=0, history=[], busy=false;
 
+/* seeded RNG (mulberry32) — deterministic, reproducible boards */
+function mulberry32(a){
+  return function(){
+    a|=0; a=a+0x6D2B79F5|0;
+    let t=Math.imul(a^a>>>15, 1|a);
+    t=t+Math.imul(t^t>>>7, 61|t)^t;
+    return ((t^t>>>14)>>>0)/4294967296;
+  };
+}
+let seed=0, rng=Math.random;                               // current scramble seed + its generator
+
+function solvedBoard(){                                     // a solved board: color == sector index
+  const b=new Array(24);
+  for(let s=0;s<6;s++) tris.filter(t=>t.sector===s).forEach(t=>b[t.id]=s);
+  return b;
+}
+
 function rotateColors(ids,dir){
   const n=ids.length, vals=ids.map(i=>state[i]);
   ids.forEach((id,k)=>{ state[id]=vals[(k-dir+n)%n]; });
@@ -204,16 +221,15 @@ function solvedCount(){
   return c;
 }
 
-function scramble(){
-  state=[]; for(let s=0;s<6;s++) for(let k=0;k<4;k++) state.push(s);   // solved
-  // map sector -> triangle ids, assign solved colors
-  const solved=new Array(24);
-  for(let s=0;s<6;s++) tris.filter(t=>t.sector===s).forEach(t=>solved[t.id]=s);
-  state=solved.slice();
+function scramble(s){
+  seed=(s===undefined)?((Math.random()*2**32)>>>0):(s>>>0);
+  rng=mulberry32(seed);
+  console.log('[hexashift] scramble seed:',seed);
+  state=solvedBoard();
   do{
     for(let i=0;i<2;i++){
-      const half=HALVES[(Math.random()*HALVES.length)|0];
-      applyHalf(half, Math.random()<0.5?1:-1);
+      const half=HALVES[(rng()*HALVES.length)|0];
+      applyHalf(half, rng()<0.5?1:-1);
     }
   } while(isSolved());
   moves=0; history=[]; refresh();
@@ -302,10 +318,64 @@ document.getElementById('newBtn').onclick=()=>{ document.getElementById('win').c
 document.getElementById('winBtn').onclick=()=>{ document.getElementById('win').classList.remove('show'); scramble(); };
 document.getElementById('undoBtn').onclick=undo;
 
+/* ---- harness helpers (scriptable, deterministic) ---- */
+function setState(arr){
+  if(!Array.isArray(arr)||arr.length!==24||arr.some(v=>!Number.isInteger(v)||v<0||v>5))
+    throw new Error('setState needs a length-24 array of color indices 0..5');
+  state=arr.slice(); moves=0; history=[]; refresh();
+}
+function doMoveByIndex(i,dir){ doMove(HALVES[i], dir); }
+
+/* in-page self-test runner: __hx.test() or load with ?test. Restores the board after. */
+function runTests(){
+  const snap={state:state.slice(), moves, history:history.slice(), seed};
+  const results=[];
+  const ok=(name,cond)=>results.push({name,pass:!!cond});
+  const eqArr=(a,b)=>a.length===b.length&&a.every((v,i)=>v===b[i]);
+
+  // T1: a move composed with its inverse is the identity, for every half
+  let t1=true;
+  for(let h=0;h<HALVES.length;h++){
+    const before=state.slice();
+    applyHalf(HALVES[h],1); applyHalf(HALVES[h],-1);
+    if(!eqArr(state,before)) t1=false;
+  }
+  ok('move ∘ inverse = identity (all 6 halves)', t1);
+
+  // T2: seeded move sequence undone in reverse returns a solved board to solved
+  state=solvedBoard();
+  const r=mulberry32(0xC0FFEE), seq=[];
+  for(let i=0;i<40;i++){ const hi=(r()*HALVES.length)|0, d=r()<0.5?1:-1; seq.push([hi,d]); applyHalf(HALVES[hi],d); }
+  for(let i=seq.length-1;i>=0;i--) applyHalf(HALVES[seq[i][0]], -seq[i][1]);
+  ok('scramble + reversed inverse = solved', isSolved());
+
+  // T3: solve-detection on hand-built boards
+  state=solvedBoard();
+  ok('solved board: isSolved()', isSolved());
+  ok('solved board: solvedCount()===6', solvedCount()===6);
+  state[0]=(state[0]+1)%6;                                  // break exactly one sector
+  ok('one triangle off: not solved', !isSolved());
+  ok('one triangle off: solvedCount()===5', solvedCount()===5);
+
+  state=snap.state; moves=snap.moves; history=snap.history; seed=snap.seed; refresh();
+
+  const passed=results.filter(x=>x.pass).length;
+  results.forEach(x=>console.log(`${x.pass?'PASS':'FAIL'}  ${x.name}`));
+  console.log(`[hexashift] ${passed}/${results.length} tests passed`);
+  return {passed, total:results.length, ok:passed===results.length, results};
+}
+
 /* expose a tiny harness for self-tests */
-window.__hx={tris,AXES,HALVES,state:()=>state,isSolved,solvedCount,scramble,doMove};
+window.__hx={
+  tris, AXES, HALVES,
+  state:()=>state, moves:()=>moves, history:()=>history, seed:()=>seed,
+  isSolved, solvedCount, solvedBoard,
+  scramble, doMove, doMoveByIndex, setState,
+  mulberry32, test:runTests
+};
 
 scramble();
+if(/(?:^|[?&])test(?:$|[&=])/.test(location.search)) runTests();
 </script>
 </body>
 </html>
