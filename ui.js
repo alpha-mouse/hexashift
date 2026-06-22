@@ -82,9 +82,53 @@ HALVES.forEach(half=>{
     const arrowDir=Math.abs(screenDirX)>=Math.abs(screenDirY) ? (screenDirX>0?'right':'left') : (screenDirY>0?'down':'up');
     titleElem.textContent=`Drag ${half.label.toLowerCase()} half ${arrowDir}`;
     arrowGroup.appendChild(hitCircle); arrowGroup.appendChild(arrowPath); arrowGroup.appendChild(titleElem);
-    arrowGroup.addEventListener('mouseenter',()=>highlight(half.aff));
-    arrowGroup.addEventListener('mouseleave',clearHighlight);
-    arrowGroup.addEventListener('click',()=>{ doMove(half,dir); highlight(half.aff); });
+    const indicatorsEl=document.getElementById('indicators');
+    const indGroup=document.createElementNS(SVGNS,'g');
+    indGroup.style.opacity='0';
+    indGroup.style.pointerEvents='none';
+    half.rows.forEach(row=>{
+      row.forEach((srcId,k)=>{
+        const isWrap=k+dir<0||k+dir>=row.length;
+        let triAngleDeg;
+        if(isWrap){
+          const tri=tris[srcId];
+          const c=Math.cos(-half.theta*Math.PI/180), s=Math.sin(-half.theta*Math.PI/180);
+          const edges=[[0,1],[1,2],[2,0]].map(([i,j])=>({i,j,rmx:(tri.verts[i][0]+tri.verts[j][0])/2*c-(tri.verts[i][1]+tri.verts[j][1])/2*s}));
+          const {i,j}=edges.reduce((b,e)=>dir>0?e.rmx>b.rmx?e:b:e.rmx<b.rmx?e:b);
+          const ex=tri.verts[j][0]-tri.verts[i][0], ey=tri.verts[j][1]-tri.verts[i][1];
+          const tx=(tri.verts[i][0]+tri.verts[j][0])/2-tri.cx, ty=(tri.verts[i][1]+tri.verts[j][1])/2-tri.cy;
+          const sg=ey*tx-ex*ty>0?1:-1;
+          triAngleDeg=Math.atan2(ex*sg,ey*sg)*180/Math.PI;
+        }
+        else{ const dstId=row[k+dir]; const dx=tris[dstId].cx-tris[srcId].cx, dy=tris[dstId].cy-tris[srcId].cy; triAngleDeg=Math.atan2(-dy,dx)*180/Math.PI; }
+        const triG=document.createElementNS(SVGNS,'g');
+        triG.setAttribute('transform',`translate(${tris[srcId].cx.toFixed(3)},${(-tris[srcId].cy).toFixed(3)}) rotate(${triAngleDeg.toFixed(2)}) scale(0.38)`);
+        const p=document.createElementNS(SVGNS,'path');
+        p.setAttribute('d','M-.26 -.02 L.08 -.02 L.08 -.085 L.26 0 L.08 .085 L.08 .02 L-.26 .02 Z');
+        p.setAttribute('class','ind-arrow');
+        triG.appendChild(p); indGroup.appendChild(triG);
+      });
+    });
+    indicatorsEl.appendChild(indGroup);
+    let indAnim=null;
+    arrowGroup.addEventListener('mouseenter',()=>{
+      if(indAnim){ indAnim.cancel(); indAnim=null; }
+      indGroup.style.opacity='0.45';
+      highlight(half.aff);
+    });
+    arrowGroup.addEventListener('mouseleave',()=>{
+      if(indAnim){ indAnim.cancel(); indAnim=null; }
+      indGroup.style.opacity='0';
+      clearHighlight();
+    });
+    arrowGroup.addEventListener('click',()=>{
+      if(indAnim) indAnim.cancel();
+      indGroup.style.opacity='1';
+      indAnim=indGroup.animate([{opacity:1},{opacity:0.45}],{duration:400,easing:'ease-out',fill:'forwards'});
+      indAnim.onfinish=()=>{ indAnim.cancel(); indGroup.style.opacity='0.45'; indAnim=null; };
+      doMove(half,dir);
+      highlight(half.aff);
+    });
     controls.appendChild(arrowGroup);
   });
 });

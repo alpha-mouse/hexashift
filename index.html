@@ -43,7 +43,7 @@
       <p><strong>Goal:</strong> Arrange all 24 colored triangles so that each of the six big sector-triangles is one solid color.</p>
       <p><strong>Moving pieces:</strong> The board is divided into six <em>halves</em> (two rows each) along three axes. Click an arrow outside the hexagon to slide that half one triangle along its axis. Triangles that run off one end wrap around to the other.</p>
       <p><strong>Hovering</strong> an arrow highlights the triangles that will move.</p>
-      <p><strong>Undo / Redo</strong> let you step back and forward through your moves. <strong>New game</strong> scrambles a fresh puzzle.</p>
+      <p><strong>Undo / Redo</strong> let you step back and forward through your moves. <strong>New game</strong> scrambles a fresh puzzle. To restart - <strong>refresh</strong> the page.</p>
       <p><strong>Difficulty</strong> sets how many scramble moves are applied at the start — fewer moves means a simpler puzzle closer to the solved state.</p>
       <p>You can also <strong>share a puzzle</strong> by copying the link at the bottom — it encodes the exact starting board so a friend can try the same scramble.</p>
       <button id="letsPlayBtn" type="button">Let's play!</button>
@@ -53,6 +53,7 @@
       <svg id="board" viewBox="-2.6 -2.45 5.2 4.9" aria-label="Hexashift board">
         <g transform="scale(1,-1)" id="boardG"></g>
         <g id="controls"></g>
+        <g id="indicators"></g>
       </svg>
     </div>
 

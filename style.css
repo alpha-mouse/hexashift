@@ -114,6 +114,7 @@ button:active{transform:translateY(1px)}
 .ctrl path{fill:var(--muted); transition:fill .12s ease}
 .ctrl:hover path{fill:var(--accent)}
 .ctrl circle{fill:transparent}
+.ind-arrow{fill:white; stroke:rgba(0,0,0,0.25); stroke-width:0.04; stroke-linejoin:round}
 
 #win{position:fixed; inset:0; background:var(--win-overlay); display:none;
   place-items:center; backdrop-filter:blur(3px)}
