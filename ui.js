@@ -3,71 +3,73 @@
 /* ---- 4. Rendering ---- */
 const boardG=document.getElementById('boardG');
 const polys=[];
-tris.forEach(t=>{
-  const p=document.createElementNS('http://www.w3.org/2000/svg','polygon');
-  p.setAttribute('points', t.verts.map(v=>v.join(',')).join(' '));
-  p.setAttribute('class','tri');
-  boardG.appendChild(p); polys[t.id]=p;
+tris.forEach(triangle=>{
+  const polygon=document.createElementNS('http://www.w3.org/2000/svg','polygon');
+  polygon.setAttribute('points', triangle.verts.map(vertex=>vertex.join(',')).join(' '));
+  polygon.setAttribute('class','tri');
+  boardG.appendChild(polygon); polys[triangle.id]=polygon;
 });
 const VTX=[[1,SQRT3],[2,0],[1,-SQRT3],[-1,-SQRT3],[-2,0],[-1,SQRT3]];
-VTX.forEach(v=>{
-  const l=document.createElementNS('http://www.w3.org/2000/svg','line');
-  l.setAttribute('x1',0); l.setAttribute('y1',0); l.setAttribute('x2',v[0]); l.setAttribute('y2',v[1]);
-  l.setAttribute('class','frame'); boardG.appendChild(l);
+VTX.forEach(vertex=>{
+  const line=document.createElementNS('http://www.w3.org/2000/svg','line');
+  line.setAttribute('x1',0); line.setAttribute('y1',0); line.setAttribute('x2',vertex[0]); line.setAttribute('y2',vertex[1]);
+  line.setAttribute('class','frame'); boardG.appendChild(line);
 });
 const hex=document.createElementNS('http://www.w3.org/2000/svg','polygon');
-hex.setAttribute('points', VTX.map(v=>v.join(',')).join(' '));
+hex.setAttribute('points', VTX.map(vertex=>vertex.join(',')).join(' '));
 hex.setAttribute('class','frame outer'); boardG.appendChild(hex);
 
 function refresh(){
-  tris.forEach(t=>polys[t.id].setAttribute('fill', COLORS[state[t.id]]));
+  tris.forEach(triangle=>polys[triangle.id].setAttribute('fill', COLORS[state[triangle.id]]));
   document.getElementById('movesN').textContent=moves;
 }
-function highlight(ids){
-  const set=new Set(ids);
-  tris.forEach(t=>polys[t.id].classList.toggle('dim', !set.has(t.id)));
+function highlight(triangleIds){
+  const highlightedSet=new Set(triangleIds);
+  tris.forEach(triangle=>polys[triangle.id].classList.toggle('dim', !highlightedSet.has(triangle.id)));
 }
-function clearHighlight(){ tris.forEach(t=>polys[t.id].classList.remove('dim')); }
-function flash(ids){
+function clearHighlight(){ tris.forEach(triangle=>polys[triangle.id].classList.remove('dim')); }
+function flash(triangleIds){
   busy=true;
-  ids.forEach(id=>polys[id].classList.add('moved'));
-  setTimeout(()=>{ ids.forEach(id=>polys[id].classList.remove('moved')); busy=false; },190);
+  triangleIds.forEach(id=>polys[id].classList.add('moved'));
+  setTimeout(()=>{ triangleIds.forEach(id=>polys[id].classList.remove('moved')); busy=false; },190);
 }
 
 /* ---- 5. Controls: drag-arrows outside the hex ---- */
 const SVGNS='http://www.w3.org/2000/svg';
 const controls=document.getElementById('controls');
 const SIDES=[30,90,150,210,270,330].map(d=>{const a=d*Math.PI/180; return [Math.cos(a),Math.sin(a)];});
-const R=1.78, SEP=0.50;
+const ARROW_RADIUS=1.78, ARROW_SEP=0.50;
 HALVES.forEach(half=>{
-  const th=half.theta*Math.PI/180;
+  const axisAngleRad=half.theta*Math.PI/180;
   [1,-1].forEach(dir=>{
-    const ux=dir*Math.cos(th), uy=dir*Math.sin(th);
-    let head=half.aff[0], max=-Infinity;
-    half.aff.forEach(id=>{ const p=tris[id].cx*ux+tris[id].cy*uy; if(p>max){max=p;head=id;} });
-    const ha=Math.atan2(tris[head].cy,tris[head].cx);
-    let side=SIDES[0], bd=Infinity;
-    SIDES.forEach(s=>{ const d=Math.abs(((Math.atan2(s[1],s[0])-ha+3*Math.PI)%(2*Math.PI))-Math.PI); if(d<bd){bd=d;side=s;} });
-    const nx=side[0], ny=side[1], un=ux*nx+uy*ny;
-    let tx=ux-un*nx, ty=uy-un*ny, tl=Math.hypot(tx,ty)||1; tx/=tl; ty/=tl;
-    const cxm=nx*R+SEP*tx, cym=ny*R+SEP*ty;
-    const px=cxm, py=-cym;
-    const ang=Math.atan2(-uy,ux)*180/Math.PI;
-    const g=document.createElementNS(SVGNS,'g'); g.setAttribute('class','ctrl');
-    g.setAttribute('transform',`translate(${px.toFixed(3)},${py.toFixed(3)}) rotate(${ang.toFixed(2)})`);
-    const hit=document.createElementNS(SVGNS,'circle');
-    hit.setAttribute('cx','0.26'); hit.setAttribute('cy','0'); hit.setAttribute('r','0.30');
-    const path=document.createElementNS(SVGNS,'path');
-    path.setAttribute('d','M0 -.02 L.34 -.02 L.34 -.085 L.52 0 L.34 .085 L.34 .02 L0 .02 Z');
-    const t=document.createElementNS(SVGNS,'title');
-    const sdx=ux, sdy=-uy;
-    const arrowDir=Math.abs(sdx)>=Math.abs(sdy) ? (sdx>0?'right':'left') : (sdy>0?'down':'up');
-    t.textContent=`Drag ${half.label.toLowerCase()} half ${arrowDir}`;
-    g.appendChild(hit); g.appendChild(path); g.appendChild(t);
-    g.addEventListener('mouseenter',()=>highlight(half.aff));
-    g.addEventListener('mouseleave',clearHighlight);
-    g.addEventListener('click',()=>{ doMove(half,dir); highlight(half.aff); });
-    controls.appendChild(g);
+    const unitDirX=dir*Math.cos(axisAngleRad), unitDirY=dir*Math.sin(axisAngleRad);
+    let headTriangleId=half.aff[0], maxProjection=-Infinity;
+    half.aff.forEach(id=>{ const projection=tris[id].cx*unitDirX+tris[id].cy*unitDirY; if(projection>maxProjection){maxProjection=projection;headTriangleId=id;} });
+    const headAngleRad=Math.atan2(tris[headTriangleId].cy,tris[headTriangleId].cx);
+    let nearestSide=SIDES[0], bestAngleDiff=Infinity;
+    SIDES.forEach(side=>{ const diff=Math.abs(((Math.atan2(side[1],side[0])-headAngleRad+3*Math.PI)%(2*Math.PI))-Math.PI); if(diff<bestAngleDiff){bestAngleDiff=diff;nearestSide=side;} });
+    const sideNormalX=nearestSide[0], sideNormalY=nearestSide[1];
+    const normalProjection=unitDirX*sideNormalX+unitDirY*sideNormalY;
+    let tangentX=unitDirX-normalProjection*sideNormalX, tangentY=unitDirY-normalProjection*sideNormalY;
+    const tangentLength=Math.hypot(tangentX,tangentY)||1; tangentX/=tangentLength; tangentY/=tangentLength;
+    const centerX=sideNormalX*ARROW_RADIUS+ARROW_SEP*tangentX, centerY=sideNormalY*ARROW_RADIUS+ARROW_SEP*tangentY;
+    const screenX=centerX, screenY=-centerY;
+    const arrowAngleDeg=Math.atan2(-unitDirY,unitDirX)*180/Math.PI;
+    const arrowGroup=document.createElementNS(SVGNS,'g'); arrowGroup.setAttribute('class','ctrl');
+    arrowGroup.setAttribute('transform',`translate(${screenX.toFixed(3)},${screenY.toFixed(3)}) rotate(${arrowAngleDeg.toFixed(2)})`);
+    const hitCircle=document.createElementNS(SVGNS,'circle');
+    hitCircle.setAttribute('cx','0.26'); hitCircle.setAttribute('cy','0'); hitCircle.setAttribute('r','0.30');
+    const arrowPath=document.createElementNS(SVGNS,'path');
+    arrowPath.setAttribute('d','M0 -.02 L.34 -.02 L.34 -.085 L.52 0 L.34 .085 L.34 .02 L0 .02 Z');
+    const titleElem=document.createElementNS(SVGNS,'title');
+    const screenDirX=unitDirX, screenDirY=-unitDirY;
+    const arrowDir=Math.abs(screenDirX)>=Math.abs(screenDirY) ? (screenDirX>0?'right':'left') : (screenDirY>0?'down':'up');
+    titleElem.textContent=`Drag ${half.label.toLowerCase()} half ${arrowDir}`;
+    arrowGroup.appendChild(hitCircle); arrowGroup.appendChild(arrowPath); arrowGroup.appendChild(titleElem);
+    arrowGroup.addEventListener('mouseenter',()=>highlight(half.aff));
+    arrowGroup.addEventListener('mouseleave',clearHighlight);
+    arrowGroup.addEventListener('click',()=>{ doMove(half,dir); highlight(half.aff); });
+    controls.appendChild(arrowGroup);
   });
 });
 
@@ -113,13 +115,13 @@ const themeBtns={ light:document.getElementById('themeLight'),
                   system:document.getElementById('themeSystem'),
                   dark:document.getElementById('themeDark') };
 function getTheme(){
-  try{ const t=localStorage.getItem(THEME_KEY); if(t==='light'||t==='dark'||t==='system') return t; }catch(e){}
+  try{ const storedTheme=localStorage.getItem(THEME_KEY); if(storedTheme==='light'||storedTheme==='dark'||storedTheme==='system') return storedTheme; }catch(e){}
   return 'system';
 }
 function applyTheme(mode){
   if(mode==='light'||mode==='dark') document.documentElement.setAttribute('data-theme',mode);
   else document.documentElement.removeAttribute('data-theme');
-  for(const k in themeBtns) themeBtns[k].setAttribute('aria-pressed', String(k===mode));
+  for(const themeName in themeBtns) themeBtns[themeName].setAttribute('aria-pressed', String(themeName===mode));
 }
 function setTheme(mode){
   try{ localStorage.setItem(THEME_KEY,mode); }catch(e){}
@@ -145,27 +147,27 @@ if(difficultySel){
 /* ---- Shareable fingerprint ---- */
 let initialBoard=state.slice();
 function shareUrl(code){
-  const u=new URL(location.href);
-  u.searchParams.set(FP_PARAM, code);
-  return u.toString();
+  const pageUrl=new URL(location.href);
+  pageUrl.searchParams.set(FP_PARAM, code);
+  return pageUrl.toString();
 }
 function updateShareUI(){
   const code=encodeBoard(initialBoard);
   const url=shareUrl(code);
-  const a=document.getElementById('shareLink');
-  if(a){ a.href=url; a.textContent=url; }
-  const btn=document.getElementById('copyBtn');
-  if(btn){ btn.classList.remove('copied'); btn.textContent='Copy link'; }
+  const shareLinkElem=document.getElementById('shareLink');
+  if(shareLinkElem){ shareLinkElem.href=url; shareLinkElem.textContent=url; }
+  const copyButton=document.getElementById('copyBtn');
+  if(copyButton){ copyButton.classList.remove('copied'); copyButton.textContent='Copy link'; }
   try{ window.history.replaceState(null,'',url); }catch(e){}
 }
-function newGame(s){
-  scramble(s);
+function newGame(seedValue){
+  scramble(seedValue);
   refresh();
   initialBoard=state.slice();
   updateShareUI();
 }
-function loadFingerprint(code){
-  const board=decodeBoard(code);
+function loadFingerprint(encodedCode){
+  const board=decodeBoard(encodedCode);
   if(!board) return false;
   setState(board);
   initialBoard=board.slice();
@@ -174,20 +176,20 @@ function loadFingerprint(code){
 }
 function copyShareLink(){
   const url=shareUrl(encodeBoard(initialBoard));
-  const btn=document.getElementById('copyBtn');
-  const mark=()=>{ if(btn){ btn.classList.add('copied'); btn.textContent='Copied!';
-    setTimeout(()=>{ btn.classList.remove('copied'); btn.textContent='Copy link'; },1400); } };
-  const fallback=()=>{
+  const copyButton=document.getElementById('copyBtn');
+  const markCopied=()=>{ if(copyButton){ copyButton.classList.add('copied'); copyButton.textContent='Copied!';
+    setTimeout(()=>{ copyButton.classList.remove('copied'); copyButton.textContent='Copy link'; },1400); } };
+  const copyFallback=()=>{
     try{
-      const ta=document.createElement('textarea');
-      ta.value=url; ta.style.position='fixed'; ta.style.opacity='0';
-      document.body.appendChild(ta); ta.select(); document.execCommand('copy');
-      document.body.removeChild(ta); mark();
+      const textArea=document.createElement('textarea');
+      textArea.value=url; textArea.style.position='fixed'; textArea.style.opacity='0';
+      document.body.appendChild(textArea); textArea.select(); document.execCommand('copy');
+      document.body.removeChild(textArea); markCopied();
     }catch(e){}
   };
   if(navigator.clipboard&&navigator.clipboard.writeText)
-    navigator.clipboard.writeText(url).then(mark, fallback);
-  else fallback();
+    navigator.clipboard.writeText(url).then(markCopied, copyFallback);
+  else copyFallback();
 }
 
 /* ---- Help panel ---- */
@@ -199,8 +201,8 @@ function setHelpOpen(open){
   helpToggle.setAttribute('aria-expanded',String(open));
 }
 helpToggle.addEventListener('click',()=>{
-  const next=!helpPanel.classList.contains('open');
-  setHelpOpen(next);
+  const helpPanelShouldBeOpen=!helpPanel.classList.contains('open');
+  setHelpOpen(helpPanelShouldBeOpen);
   try{ localStorage.setItem(HELP_KEY,'1'); }catch(e){}
 });
 (function(){
@@ -211,8 +213,8 @@ helpToggle.addEventListener('click',()=>{
 
 /* ---- Boot ---- */
 (function boot(){
-  let code=null;
-  try{ code=new URL(location.href).searchParams.get(FP_PARAM); }catch(e){}
-  if(code && loadFingerprint(code)) return;
+  let fingerprintCode=null;
+  try{ fingerprintCode=new URL(location.href).searchParams.get(FP_PARAM); }catch(e){}
+  if(fingerprintCode && loadFingerprint(fingerprintCode)) return;
   newGame();
 })();
