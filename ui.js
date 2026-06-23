@@ -327,7 +327,10 @@ helpToggle.addEventListener('click',()=>{
   try{ localStorage.setItem(HELP_KEY,'1'); }catch(e){}
 });
 const letsPlayBtn=document.getElementById('letsPlayBtn');
-if(letsPlayBtn) letsPlayBtn.addEventListener('click',()=>setHelpOpen(false));
+if(letsPlayBtn) letsPlayBtn.addEventListener('click',()=>{
+  setHelpOpen(false);
+  try{ localStorage.setItem(HELP_KEY,'1'); }catch(e){}
+});
 (function(){
   let seen=false;
   try{ seen=!!localStorage.getItem(HELP_KEY); }catch(e){}
