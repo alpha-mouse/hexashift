@@ -93,6 +93,9 @@ button{font:inherit; color:var(--ink); cursor:pointer; border-radius:10px;
   border:1px solid var(--btn-border); background:var(--btn-bg); transition:.12s}
 button:hover{border-color:var(--accent); background:var(--btn-bg-hover)}
 button:active{transform:translateY(1px)}
+button:disabled{opacity:.4; cursor:not-allowed}
+button:disabled:hover{border-color:var(--btn-border); background:var(--btn-bg)}
+button:disabled:active{transform:none}
 .actions button{flex:1; padding:10px}
 .actions button.primary{background:var(--accent); border-color:var(--accent); color:var(--accent-ink); font-weight:600}
 

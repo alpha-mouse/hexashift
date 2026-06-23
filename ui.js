@@ -148,6 +148,16 @@ function updateHintStack(halfIndex,dir){
   if(front&&front.halfIndex===halfIndex&&front.dir===dir) hintStack.shift();
   else hintStack.unshift({halfIndex,dir:-dir});
 }
+function updateHintAvailability(){
+  const btn=document.getElementById('hintBtn');
+  if(!btn) return;
+  let hasPath=false;
+  if(!isSolved()){
+    if(hintStack&&hintStack.length) hasPath=true;
+    else{ const sol=solve(state,HALVES,5); hasPath=!!(sol&&sol.length); }
+  }
+  btn.disabled=!hasPath;
+}
 function doMove(half,dir){
   if(busy) return;
   applyHalf(half,dir);
@@ -157,6 +167,7 @@ function doMove(half,dir){
   refresh();
   flash(half.aff);
   if(isSolved()){ moves>0 && win(); }
+  updateHintAvailability();
 }
 function undo(){
   if(busy||!history.length) return;
@@ -166,6 +177,7 @@ function undo(){
   applyHalf(half,-dir); moves=Math.max(0,moves-1);
   updateHintStack(HALVES.indexOf(half),-dir);
   refresh(); flash(half.aff);
+  updateHintAvailability();
 }
 function hint(){
   if(busy||isSolved()) return;
@@ -266,13 +278,16 @@ function newGame(seedValue){
   hintStack=sol?sol.map(m=>({halfIndex:m.halfIndex,dir:m.dir})):null;
   userMoves=[];
   updateShareUI();
+  updateHintAvailability();
 }
 function loadFingerprint(encodedCode){
   const board=decodeBoard(encodedCode);
   if(!board) return false;
   setState(board);
   initialBoard=board.slice();
+  hintStack=null;
   updateShareUI();
+  updateHintAvailability();
   return true;
 }
 function copyShareLink(){
