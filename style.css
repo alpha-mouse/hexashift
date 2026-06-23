@@ -93,6 +93,9 @@ button{font:inherit; color:var(--ink); cursor:pointer; border-radius:10px;
   border:1px solid var(--btn-border); background:var(--btn-bg); transition:.12s}
 button:hover{border-color:var(--accent); background:var(--btn-bg-hover)}
 button:active{transform:translateY(1px)}
+button:disabled{opacity:.4; cursor:not-allowed}
+button:disabled:hover{border-color:var(--btn-border); background:var(--btn-bg)}
+button:disabled:active{transform:none}
 .actions button{flex:1; padding:10px}
 .actions button.primary{background:var(--accent); border-color:var(--accent); color:var(--accent-ink); font-weight:600}
 
@@ -114,6 +117,11 @@ button:active{transform:translateY(1px)}
 .ctrl path{fill:var(--muted); transition:fill .12s ease}
 .ctrl:hover path{fill:var(--accent)}
 .ctrl circle{fill:transparent}
+@keyframes hintBlink{
+  0%,100%{fill:var(--muted); opacity:1}
+  50%{fill:var(--accent); opacity:.25}
+}
+.ctrl.hint-blink path{animation:hintBlink .35s ease-in-out 3}
 .ind-arrow{fill:white; stroke:rgba(0,0,0,0.25); stroke-width:0.04; stroke-linejoin:round}
 
 #win{position:fixed; inset:0; background:var(--win-overlay); display:none;

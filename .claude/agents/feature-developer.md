@@ -21,8 +21,6 @@ tools: [Read, Edit, Write, Grep, Glob, Bash, mcp__playwright__browser_navigate, 
 1. **Read** any files named in the caller's prompt.
 2. **Implement** the requested change. Minimal diff — no drive-by refactors.
 3. **Serve** using the exact command from CLAUDE.md.
-   Kill any existing instance first:
-   `pkill -f "http-server.*15373" 2>/dev/null || true`
 4. **Test — two layers, both required:**
    - Playwright MCP → `http://127.0.0.1:15373`: check browser console for errors,
      screenshot the board, exercise the changed UI path interactively.
