@@ -91,55 +91,64 @@ function reconstruct(meetKey, fwd, back) {
   return fwdMoves.concat(backMoves);
 }
 
+// Bounded bidirectional BFS. Searches only for solutions of length <= maxSteps
+// (in practice <= 5), so the per-side frontiers stay tiny and the deep-board
+// wall of MODEL.md S8/S9 never applies. Returns the move list if a solution
+// within maxSteps exists, else null ("not found").
+//
+// Why bidirectional stays correct under the bound: forward stores all boards at
+// distance <= fwdDist, backward all at distance <= backDist. We expand until
+// fwdDist + backDist == maxSteps. Any path of length L <= maxSteps then splits
+// as a + b with a <= fwdDist, b <= backDist (feasible since fwdDist+backDist >=
+// L), so its meeting node sits in both Maps and was recorded as a meet by the
+// second side to reach it. A meet recorded while the running sum is S always has
+// total <= S <= maxSteps, so the first meet found is a valid in-bound solution.
+//
 // @param {number[]} state  - Array(24) of color indices 0..5 (snapshot, not mutated)
 // @param {object[]} halves - HALVES from game.js
-// @returns {{halfIndex: number, dir: number}[]}
-function solve(state, halves) {
+// @param {number}   maxSteps - max solution length to search for (default 5)
+// @returns {{halfIndex: number, dir: number}[] | null}  null = no solution <= maxSteps
+function solve(state, halves, maxSteps) {
+  if (maxSteps === undefined) maxSteps = 5;
   const moves = buildMoves(halves);
   const start = state.slice();
   const startKey = keyOf(start);
 
-  const fwd = new Map();
-  const back = new Map();
-
-  fwd.set(startKey, { half: -1, dir: 0, parent: null, dist: 0 });
-  let fwdFrontier = [start];
-  let fwdDist = 0;
-
   const goal = solvedBoard(); // canonical "sector s = color s"
   const goalKey = keyOf(goal);
-  back.set(goalKey, { half: -1, dir: 0, parent: null, dist: 0 });
-  let backFrontier = [goal];
-  let backDist = 0;
-
   if (startKey === goalKey) return []; // already solved
+  if (maxSteps < 1) return null;
 
-  // dF/dB = number of layers fully expanded on each side (start: source only).
-  let dF = -1, dB = -1;
+  const fwd = new Map();
+  const back = new Map();
+  fwd.set(startKey, { half: -1, dir: 0, parent: null, dist: 0 });
+  back.set(goalKey, { half: -1, dir: 0, parent: null, dist: 0 });
+  let fwdFrontier = [start], backFrontier = [goal];
+  let fwdDist = 0, backDist = 0;
   let bestTotal = Infinity, bestMeet = null;
 
-  // Expand whichever side has fewer stored boards, so the two Maps stay balanced
-  // in memory and neither approaches the per-Map cap before they meet.
-  while (fwdFrontier.length && backFrontier.length) {
+  // Expand the smaller side each ply (balanced), stopping once the combined
+  // explored depth reaches maxSteps -> all paths of length <= maxSteps covered.
+  while (fwdDist + backDist < maxSteps && fwdFrontier.length && backFrontier.length) {
     let res;
     if (fwd.size <= back.size) {
       res = expandPly(fwdFrontier, fwdDist, fwd, back, moves);
-      fwdFrontier = res.next; fwdDist++; dF++;
+      fwdFrontier = res.next; fwdDist++;
     } else {
       res = expandPly(backFrontier, backDist, back, fwd, moves);
-      backFrontier = res.next; backDist++; dB++;
+      backFrontier = res.next; backDist++;
     }
     for (const m of res.meets) {
       if (m.total < bestTotal) { bestTotal = m.total; bestMeet = m.key; }
     }
-    // Optimal stop: every meet with total <= dF+dB+2 is now discovered, so a
-    // recorded best within that bound is the true shortest path.
-    if (bestMeet !== null && bestTotal <= dF + dB + 2) {
-      return reconstruct(bestMeet, fwd, back);
-    }
+    // First meet's total is <= the current explored sum <= maxSteps, so it is a
+    // valid in-bound solution; return immediately.
+    if (bestMeet !== null) return reconstruct(bestMeet, fwd, back);
   }
 
-  return bestMeet !== null ? reconstruct(bestMeet, fwd, back) : [];
+  return (bestMeet !== null && bestTotal <= maxSteps)
+    ? reconstruct(bestMeet, fwd, back)
+    : null;
 }
 
 module.exports = { solve };
