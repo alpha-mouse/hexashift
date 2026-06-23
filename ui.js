@@ -55,7 +55,7 @@ const SVGNS='http://www.w3.org/2000/svg';
 const controls=document.getElementById('controls');
 const SIDES=[30,90,150,210,270,330].map(d=>{const a=d*Math.PI/180; return [Math.cos(a),Math.sin(a)];});
 const ARROW_RADIUS=1.78, ARROW_SEP=0.50;
-let initialSolution=null, userMoves=[];
+let initialSolution=null, userMoves=[], hintStack=null;
 const arrowByMove=new Map();
 HALVES.forEach(half=>{
   const axisAngleRad=half.theta*Math.PI/180;
@@ -142,11 +142,18 @@ function win(){
   document.getElementById('win').classList.add('show');
 }
 
+function updateHintStack(halfIndex,dir){
+  if(!hintStack) return;
+  const front=hintStack[0];
+  if(front&&front.halfIndex===halfIndex&&front.dir===dir) hintStack.shift();
+  else hintStack.unshift({halfIndex,dir:-dir});
+}
 function doMove(half,dir){
   if(busy) return;
   applyHalf(half,dir);
   history.push([half,dir]); redoStack.length=0; moves++;
   userMoves.push({half,dir,halfIndex:HALVES.indexOf(half)});
+  updateHintStack(HALVES.indexOf(half),dir);
   refresh();
   flash(half.aff);
   if(isSolved()){ moves>0 && win(); }
@@ -157,21 +164,17 @@ function undo(){
   redoStack.push([half,dir]);
   userMoves.pop();
   applyHalf(half,-dir); moves=Math.max(0,moves-1);
+  updateHintStack(HALVES.indexOf(half),-dir);
   refresh(); flash(half.aff);
 }
 function hint(){
   if(busy||isSolved()) return;
-  const sol=solve(state,HALVES,5);
-  let move;
-  if(sol&&sol.length){
-    move={halfIndex:sol[0].halfIndex,dir:sol[0].dir};
-  } else if(userMoves.length){
-    const last=userMoves[userMoves.length-1];
-    move={halfIndex:last.halfIndex,dir:-last.dir};
-  } else {
+  if(hintStack&&hintStack.length){
+    blinkArrow(hintStack[0].halfIndex,hintStack[0].dir);
     return;
   }
-  blinkArrow(move.halfIndex,move.dir);
+  const sol=solve(state,HALVES,5);
+  if(sol&&sol.length) blinkArrow(sol[0].halfIndex,sol[0].dir);
 }
 function blinkArrow(halfIndex,dir){
   const g=arrowByMove.get(halfIndex+','+dir);
@@ -260,6 +263,7 @@ function newGame(seedValue){
   refresh();
   initialBoard=state.slice();
   initialSolution=sol;
+  hintStack=sol?sol.map(m=>({halfIndex:m.halfIndex,dir:m.dir})):null;
   userMoves=[];
   updateShareUI();
 }
