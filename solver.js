@@ -1,6 +1,10 @@
 "use strict";
 
-const { solvedBoard } = require('./game.js');
+(function (root) {
+
+const solvedBoard = (typeof require !== 'undefined')
+  ? require('./game.js').solvedBoard
+  : root.solvedBoard;
 
 const N = 24;
 const NUM_COLORS = 6;
@@ -151,4 +155,7 @@ function solve(state, halves, maxSteps) {
     : null;
 }
 
-module.exports = { solve };
+if (typeof module !== 'undefined') module.exports = { solve };
+else root.solve = solve;
+
+})(typeof globalThis !== 'undefined' ? globalThis : this);

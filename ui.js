@@ -55,6 +55,8 @@ const SVGNS='http://www.w3.org/2000/svg';
 const controls=document.getElementById('controls');
 const SIDES=[30,90,150,210,270,330].map(d=>{const a=d*Math.PI/180; return [Math.cos(a),Math.sin(a)];});
 const ARROW_RADIUS=1.78, ARROW_SEP=0.50;
+let initialSolution=null, userMoves=[];
+const arrowByMove=new Map();
 HALVES.forEach(half=>{
   const axisAngleRad=half.theta*Math.PI/180;
   [1,-1].forEach(dir=>{
@@ -82,6 +84,7 @@ HALVES.forEach(half=>{
     const arrowDir=Math.abs(screenDirX)>=Math.abs(screenDirY) ? (screenDirX>0?'right':'left') : (screenDirY>0?'down':'up');
     titleElem.textContent=`Drag ${half.label.toLowerCase()} half ${arrowDir}`;
     arrowGroup.appendChild(hitCircle); arrowGroup.appendChild(arrowPath); arrowGroup.appendChild(titleElem);
+    arrowByMove.set(HALVES.indexOf(half)+','+dir, arrowGroup);
     const indicatorsEl=document.getElementById('indicators');
     const indGroup=document.createElementNS(SVGNS,'g');
     indGroup.style.opacity='0';
@@ -143,6 +146,7 @@ function doMove(half,dir){
   if(busy) return;
   applyHalf(half,dir);
   history.push([half,dir]); redoStack.length=0; moves++;
+  userMoves.push({half,dir,halfIndex:HALVES.indexOf(half)});
   refresh();
   flash(half.aff);
   if(isSolved()){ moves>0 && win(); }
@@ -151,22 +155,37 @@ function undo(){
   if(busy||!history.length) return;
   const [half,dir]=history.pop();
   redoStack.push([half,dir]);
+  userMoves.pop();
   applyHalf(half,-dir); moves=Math.max(0,moves-1);
   refresh(); flash(half.aff);
 }
-function redo(){
-  if(busy||!redoStack.length) return;
-  const [half,dir]=redoStack.pop();
-  history.push([half,dir]); moves++;
-  applyHalf(half,dir);
-  refresh(); flash(half.aff);
-  if(isSolved()){ moves>0 && win(); }
+function hint(){
+  if(busy||isSolved()) return;
+  const sol=solve(state,HALVES,5);
+  let move;
+  if(sol&&sol.length){
+    move={halfIndex:sol[0].halfIndex,dir:sol[0].dir};
+  } else if(userMoves.length){
+    const last=userMoves[userMoves.length-1];
+    move={halfIndex:last.halfIndex,dir:-last.dir};
+  } else {
+    return;
+  }
+  blinkArrow(move.halfIndex,move.dir);
+}
+function blinkArrow(halfIndex,dir){
+  const g=arrowByMove.get(halfIndex+','+dir);
+  if(!g) return;
+  g.classList.remove('hint-blink');
+  void g.getBoundingClientRect();
+  g.classList.add('hint-blink');
+  g.addEventListener('animationend',()=>g.classList.remove('hint-blink'),{once:true});
 }
 
 document.getElementById('newBtn').onclick=()=>{ document.getElementById('win').classList.remove('show'); newGame(); };
 document.getElementById('winBtn').onclick=()=>{ document.getElementById('win').classList.remove('show'); newGame(); };
 document.getElementById('undoBtn').onclick=undo;
-document.getElementById('redoBtn').onclick=redo;
+document.getElementById('hintBtn').onclick=hint;
 document.getElementById('copyBtn').onclick=copyShareLink;
 
 /* ---- Theme control ---- */
@@ -226,9 +245,22 @@ function updateShareUI(){
   try{ window.history.replaceState(null,'',url); }catch(e){}
 }
 function newGame(seedValue){
-  scramble(seedValue,getDifficulty());
+  const target=getDifficulty();
+  let sol=null;
+  if(seedValue===undefined && target<=5){
+    for(let tries=0;tries<200;tries++){
+      scramble(undefined,target);
+      sol=solve(state,HALVES,target);
+      if(sol&&sol.length===target) break;
+    }
+  } else {
+    scramble(seedValue,target);
+    sol=(target<=5)?solve(state,HALVES,target):null;
+  }
   refresh();
   initialBoard=state.slice();
+  initialSolution=sol;
+  userMoves=[];
   updateShareUI();
 }
 function loadFingerprint(encodedCode){
