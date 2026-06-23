@@ -19,17 +19,18 @@ tools: [Read, Edit, Write, Grep, Glob, Bash, mcp__playwright__browser_navigate, 
 ## Workflow
 
 1. **Read** any files named in the caller's prompt.
-2. **Implement** the requested change. Minimal diff — no drive-by refactors.
-3. **Serve** using the exact command from CLAUDE.md.
-4. **Test — two layers, both required:**
+2. **Plan** the implementation. If the prompt is vague, ask clarifying questions. Think through possible edge cases. Write a todo list of tasks to complete the feature.
+3. **Implement** the requested change. Minimal diff — no drive-by refactors. 
+4. **Serve** using the exact command from CLAUDE.md.
+5. **Test — two layers, both required:**
    - Playwright MCP → `http://127.0.0.1:15373`: check browser console for errors,
      screenshot the board, exercise the changed UI path interactively.
    - `window.__hx.test()` via browser evaluate → all tests must pass.
      If any fail, fix before continuing.
    - Call `mcp__playwright__browser_close` to clean up.
-5. **tasks.md**: if the caller's prompt includes the exact task text, remove that
+6. **tasks.md**: if the caller's prompt includes the exact task text, remove that
    bullet from `tasks.md`.
-6. **Commit**: one terse sentence, no body.
+7. **Commit**: one terse sentence, no body.
 
 ## Receipt (return to caller)
 

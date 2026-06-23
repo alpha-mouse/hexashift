@@ -55,7 +55,8 @@ const SVGNS='http://www.w3.org/2000/svg';
 const controls=document.getElementById('controls');
 const SIDES=[30,90,150,210,270,330].map(d=>{const a=d*Math.PI/180; return [Math.cos(a),Math.sin(a)];});
 const ARROW_RADIUS=1.78, ARROW_SEP=0.50;
-let initialSolution=null, userMoves=[], hintStack=null;
+let initialSolution=null, userMoves=[];
+const tracker=createSolvabilityTracker(s=>solve(s,HALVES,5));
 const arrowByMove=new Map();
 HALVES.forEach(half=>{
   const axisAngleRad=half.theta*Math.PI/180;
@@ -147,28 +148,17 @@ function win(){
   document.getElementById('win').classList.add('show');
 }
 
-function updateHintStack(halfIndex,dir){
-  if(!hintStack) return;
-  const front=hintStack[0];
-  if(front&&front.halfIndex===halfIndex&&front.dir===dir) hintStack.shift();
-  else hintStack.unshift({halfIndex,dir:-dir});
-}
 function updateHintAvailability(){
   const btn=document.getElementById('hintBtn');
   if(!btn) return;
-  let hasPath=false;
-  if(!isSolved()){
-    if(hintStack&&hintStack.length) hasPath=true;
-    else{ const sol=solve(state,HALVES,5); hasPath=!!(sol&&sol.length); }
-  }
-  btn.disabled=!hasPath;
+  btn.disabled=isSolved()||!tracker.hasPath();
 }
 function doMove(half,dir){
   if(busy) return;
   applyHalf(half,dir);
   history.push([half,dir]); redoStack.length=0; moves++;
   userMoves.push({half,dir,halfIndex:HALVES.indexOf(half)});
-  updateHintStack(HALVES.indexOf(half),dir);
+  tracker.record({halfIndex:HALVES.indexOf(half),dir},state);
   refresh();
   flash(half.aff);
   if(isSolved()){ moves>0 && win(); }
@@ -180,18 +170,14 @@ function undo(){
   redoStack.push([half,dir]);
   userMoves.pop();
   applyHalf(half,-dir); moves=Math.max(0,moves-1);
-  updateHintStack(HALVES.indexOf(half),-dir);
+  tracker.record({halfIndex:HALVES.indexOf(half),dir:-dir},state);
   refresh(); flash(half.aff);
   updateHintAvailability();
 }
 function hint(){
-  if(busy||isSolved()) return;
-  if(hintStack&&hintStack.length){
-    blinkArrow(hintStack[0].halfIndex,hintStack[0].dir);
-    return;
-  }
-  const sol=solve(state,HALVES,5);
-  if(sol&&sol.length) blinkArrow(sol[0].halfIndex,sol[0].dir);
+  if(busy||isSolved()||!tracker.hasPath()) return;
+  const m=tracker.next();
+  if(m) blinkArrow(m.halfIndex,m.dir);
 }
 function blinkArrow(halfIndex,dir){
   const g=arrowByMove.get(halfIndex+','+dir);
@@ -280,7 +266,7 @@ function newGame(seedValue){
   refresh();
   initialBoard=state.slice();
   initialSolution=sol;
-  hintStack=sol?sol.map(m=>({halfIndex:m.halfIndex,dir:m.dir})):null;
+  tracker.reset(state);
   userMoves=[];
   updateShareUI();
   updateHintAvailability();
@@ -290,7 +276,8 @@ function loadFingerprint(encodedCode){
   if(!board) return false;
   setState(board);
   initialBoard=board.slice();
-  hintStack=null;
+  tracker.reset(state);
+  userMoves=[];
   updateShareUI();
   updateHintAvailability();
   return true;

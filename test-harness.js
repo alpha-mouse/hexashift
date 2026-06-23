@@ -53,6 +53,7 @@ window.__hx={
   isSolved, solvedCount, solvedBoard,
   scramble, doMove, doMoveByIndex, setState, undo, hint,
   userMoves:()=>userMoves.slice(),
+  hintHasPath:()=>tracker.hasPath(), hintPath:()=>tracker.snapshot(), hintNext:()=>tracker.next(),
   mulberry32, test:runTests,
   getTheme, setTheme,
   getDifficulty, setDifficulty,
