@@ -3,7 +3,7 @@ Hexashift — a browser puzzle game. Arrange 24 colored triangles in a flat-top
 hexagon so each of the 6 big sector-triangles is one solid color.
 
 ## Run / verify
-No build, no dependencies, no framework. Source split across `index.html`, `style.css`, `game.js`, `ui.js`, `test-harness.js`.
+No build, no dependencies, no framework. Source split across `index.html`, `style.css`, `game.js`, `solver.js`, `ui.js`, `test-harness.js` (loaded in that order). `solver.tests.js` runs under Node.
 - Open `index.html` in a browser, or serve the folder statically.
 - For Playwright MCP tests serve the folder (Node), then navigate to `http://127.0.0.1:15373`.
   Use exactly one of these whitelisted commands (no `npx`, no extra flags — anything else prompts):
@@ -23,13 +23,24 @@ No build, no dependencies, no framework. Source split across `index.html`, `styl
   2. **Axes / halves** — 3 axes (0/60/120°). Rotating verts by `-theta` groups triangles into 4 rows
      (sizes 5,7,7,5). A **half** = two rows; 6 halves total.
   3. **State + moves** — `state` = `Array(24)` of color index, keyed by triangle `id`. A move cyclically
-     rotates colors along each row of a half (wrap-around). `isSolved` = every sector uniform.
-     Also: fingerprint encode/decode for shareable URLs.
-`ui.js` — DOM/rendering, depends on `game.js` globals:
+     rotates colors along each row of a half (wrap-around). A move is `(halfIndex, dir)` with `dir` ±1;
+     inverse = same half, negated dir. `isSolved` = every sector uniform (accepts any of the 720
+     sector↔color bijections). Also: fingerprint encode/decode for shareable URLs.
+`solver.js` — pure logic, no DOM. `solve(state, HALVES, maxSteps=5)` → ordered move list
+  `[{halfIndex,dir}]` solving toward the canonical board, or `null` if no solution within `maxSteps`.
+  Bounded bidirectional BFS; intended for shallow scrambles only (≤5). Move perms mirror
+  `applyHalf`. See MODEL.md for the deep-board search-wall reasoning.
+`ui.js` — DOM/rendering, depends on `game.js` + `solver.js` globals:
   4. **Render** — one `<polygon>` per triangle in `polys[]`; `refresh()` repaints from `state`.
   5. **Controls** — drag-arrows outside the hex; hover previews (`highlight`), click runs the move.
-  6. **Win + buttons** — win dialog, New game, Undo/Redo.
-     Also: theme control, difficulty selector (default: 2), shareable fingerprint, help panel, boot.
+  6. **Win + buttons** — win dialog, New game, Undo, Hint.
+     - **Hint** uses a `hintStack` (solve-path) kept *separate* from `userMoves` (the user-actions
+       stack). Seeded in `newGame()` from the scramble's `initialSolution` (null for deep/loaded
+       boards). `updateHintStack(halfIndex,dir)` runs on every applied move (`doMove`, and `undo`
+       with negated dir): if the move matches the stack front the user advanced → `shift`; otherwise
+       they walked away → `unshift` the inverse. `hint()` blinks `hintStack[0]`; falls back to a
+       fresh `solve()` only when no stack exists. This keeps hints stable when followed (no flip).
+     - Also: theme control, difficulty selector, shareable fingerprint, help panel, boot.
 `test-harness.js` — exposes `window.__hx` for self-tests; loaded last.
 
 ## Conventions
