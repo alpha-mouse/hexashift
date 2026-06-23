@@ -57,7 +57,7 @@ window.__hx={
   mulberry32, test:runTests,
   getTheme, setTheme,
   getDifficulty, setDifficulty,
-  scrambleMoves:()=>lastScrambleMoves, DIFF_OPTIONS:DIFF_OPTIONS.slice(),
+  DIFF_OPTIONS:DIFF_OPTIONS.slice(),
   encodeBoard, decodeBoard,
   initialBoard:()=>initialBoard.slice(),
   fingerprint:()=>encodeBoard(initialBoard),

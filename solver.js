@@ -16,10 +16,8 @@ function keyOf(board) { return board.join(''); }
 // Mirror of rotateColors/applyHalf in game.js, precomputed as position perms:
 //   applying (halfIndex,dir) gives  out[p] = board[perm[p]].
 // 12 generators = 6 halves x dir(+1,-1). Inverse of (h,dir) is (h,-dir).
-let MOVES = null, MOVES_FOR = null;
 function buildMoves(halves) {
-  if (MOVES && MOVES_FOR === halves) return MOVES;
-  MOVES = [];
+  const moves = [];
   for (let hi = 0; hi < halves.length; hi++) {
     const half = halves[hi];
     for (const dir of [1, -1]) {
@@ -30,11 +28,10 @@ function buildMoves(halves) {
         // game: out[row[i]] = oldState[row[(i-dir+len)%len]]
         for (let i = 0; i < len; i++) perm[row[i]] = row[(i - dir + len) % len];
       }
-      MOVES.push({ halfIndex: hi, dir, perm });
+      moves.push({ halfIndex: hi, dir, perm });
     }
   }
-  MOVES_FOR = halves;
-  return MOVES;
+  return moves;
 }
 
 function applyPerm(board, perm) {
