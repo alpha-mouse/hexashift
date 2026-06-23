@@ -113,24 +113,29 @@ HALVES.forEach(half=>{
       });
     });
     indicatorsEl.appendChild(indGroup);
-    let indAnim=null;
-    arrowGroup.addEventListener('mouseenter',()=>{
+    let indAnim=null, lastPointerType='mouse';
+    function showHover(){
       if(indAnim){ indAnim.cancel(); indAnim=null; }
       indGroup.style.opacity='0.45';
       highlight(half.aff);
-    });
-    arrowGroup.addEventListener('mouseleave',()=>{
+    }
+    function clearHover(){
       if(indAnim){ indAnim.cancel(); indAnim=null; }
       indGroup.style.opacity='0';
       clearHighlight();
-    });
+    }
+    arrowGroup.addEventListener('pointerenter',e=>{ lastPointerType=e.pointerType; showHover(); });
+    arrowGroup.addEventListener('pointerleave',clearHover);
+    arrowGroup.addEventListener('pointercancel',clearHover);
     arrowGroup.addEventListener('click',()=>{
+      // Touch fires no lingering hover state, so end feedback at 0 and clear the dim.
+      const isMouse=lastPointerType==='mouse', endOpacity=isMouse?0.45:0;
       if(indAnim) indAnim.cancel();
       indGroup.style.opacity='1';
-      indAnim=indGroup.animate([{opacity:1},{opacity:0.45}],{duration:400,easing:'ease-out',fill:'forwards'});
-      indAnim.onfinish=()=>{ indAnim.cancel(); indGroup.style.opacity='0.45'; indAnim=null; };
+      indAnim=indGroup.animate([{opacity:1},{opacity:endOpacity}],{duration:400,easing:'ease-out',fill:'forwards'});
+      indAnim.onfinish=()=>{ indAnim.cancel(); indGroup.style.opacity=String(endOpacity); indAnim=null; };
       doMove(half,dir);
-      highlight(half.aff);
+      if(isMouse) highlight(half.aff); else clearHighlight();
     });
     controls.appendChild(arrowGroup);
   });
