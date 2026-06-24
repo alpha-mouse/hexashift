@@ -23,6 +23,7 @@ window.HX_I18N.en = {
   'help.goal':'<strong>Goal:</strong> Arrange all 24 colored triangles so that each of the six big sector-triangles is one solid color.',
   'help.moving':'<strong>Moving pieces:</strong> The board is divided into six <em>halves</em> (two rows each) along three axes. Click an arrow outside the hexagon to slide that half one triangle along its axis. Triangles that run off one end wrap around to the other.',
   'help.hovering':'<strong>Hovering</strong> an arrow highlights the triangles that will move.',
+  'help.keyboard':'<strong>Keyboard:</strong> Press <strong>1</strong> or <strong>2</strong> to select a half (cycling counter-clockwise or clockwise); then use the arrow keys (<strong>←↑↓→</strong>) to slide it; <strong>Escape</strong> deselects. Each arrow also has a direct hotkey — hover it to see.',
   'help.buttons':'<strong>Undo</strong> steps back through your moves; <strong>Hint</strong> blinks a suggested arrow. <strong>New game</strong> scrambles a fresh puzzle. To restart - <strong>refresh</strong> the page.',
   'help.difficulty':'<strong>Difficulty</strong> sets how many scramble moves are applied at the start — fewer moves means a simpler puzzle closer to the solved state.',
   'help.share':'You can also <strong>share a puzzle</strong> by copying the link at the bottom — it encodes the exact starting board so a friend can try the same scramble.',
@@ -58,7 +59,7 @@ window.HX_I18N.en = {
   'arrow.dir.left':'left',
   'arrow.dir.up':'up',
   'arrow.dir.down':'down',
-  'arrow.title':(p)=>`Drag ${p.half} half ${p.dir}`,
+  'arrow.title':(p)=>`Slide ${p.half} half ${p.dir}${p.key?' ('+p.key+')':''}`,
 
   /* Difficulty options */
   'difficulty.option':(p)=>`Off by ${p.n}`,

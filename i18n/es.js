@@ -19,6 +19,7 @@ window.HX_I18N.es = {
   'help.goal':'<strong>Objetivo:</strong> Ordena los 24 triángulos de colores para que cada uno de los seis sectores triangulares grandes sea de un color sólido.',
   'help.moving':'<strong>Mover piezas:</strong> El tablero se divide en seis <em>mitades</em> (de dos filas cada una) a lo largo de tres ejes. Haz clic en una flecha fuera del hexágono para deslizar esa mitad la distancia de un triángulo a lo largo de su eje. Los triángulos que salen por un extremo aparecen por el otro.',
   'help.hovering':'<strong>Pasar el cursor</strong> sobre una flecha resalta los triángulos que se moverán.',
+  'help.keyboard':'<strong>Teclado:</strong> Presiona <strong>1</strong> o <strong>2</strong> para seleccionar una mitad (ciclando en sentido contrario a las agujas del reloj u horario); luego usa las teclas de flecha (<strong>←↑↓→</strong>) para deslizarla; <strong>Escape</strong> deselecciona. Cada flecha también tiene un atajo directo — coloca el cursor sobre ella para verlo.',
   'help.buttons':'<strong>Deshacer</strong> retrocede un movimiento; <strong>Pista</strong> hace parpadear una flecha sugerida. <strong>Nueva partida</strong> genera un nuevo rompecabezas. Para reiniciar — <strong>recarga</strong> la página.',
   'help.difficulty':'<strong>La dificultad</strong> establece cuántos movimientos de mezcla se aplican al inicio — menos movimientos significan un rompecabezas más sencillo, más cerca del estado resuelto.',
   'help.share':'También puedes <strong>compartir un rompecabezas</strong> copiando el enlace al final —este codifica la configuración inicial exacta del tablero para que un amigo pueda intentar el mismo rompecabezas.',
@@ -54,7 +55,7 @@ window.HX_I18N.es = {
   'arrow.dir.left':'la izquierda',
   'arrow.dir.up':'arriba',
   'arrow.dir.down':'abajo',
-  'arrow.title':(p)=>`Deslizar la mitad ${p.half} hacia ${p.dir}`,
+  'arrow.title':(p)=>`Deslizar la mitad ${p.half} hacia ${p.dir}${p.key?' ('+p.key+')':''}`,
 
   /* Difficulty options */
   'difficulty.option':(p)=>`A ${p.n} del objetivo`,

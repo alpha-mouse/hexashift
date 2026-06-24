@@ -47,6 +47,7 @@
       <p data-i18n-html="help.goal"><strong>Goal:</strong> Arrange all 24 colored triangles so that each of the six big sector-triangles is one solid color.</p>
       <p data-i18n-html="help.moving"><strong>Moving pieces:</strong> The board is divided into six <em>halves</em> (two rows each) along three axes. Click an arrow outside the hexagon to slide that half one triangle along its axis. Triangles that run off one end wrap around to the other.</p>
       <p data-i18n-html="help.hovering"><strong>Hovering</strong> an arrow highlights the triangles that will move.</p>
+      <p data-i18n-html="help.keyboard"><strong>Keyboard:</strong> Press <strong>1</strong> or <strong>2</strong> to select a half (cycling counter-clockwise or clockwise); then use the arrow keys (<strong>←↑↓→</strong>) to slide it; <strong>Escape</strong> deselects. Each arrow also has a direct hotkey — hover it to see.</p>
       <p data-i18n-html="help.buttons"><strong>Undo</strong> steps back through your moves; <strong>Hint</strong> blinks a suggested arrow. <strong>New game</strong> scrambles a fresh puzzle. To restart - <strong>refresh</strong> the page.</p>
       <p data-i18n-html="help.difficulty"><strong>Difficulty</strong> sets how many scramble moves are applied at the start — fewer moves means a simpler puzzle closer to the solved state.</p>
       <p data-i18n-html="help.share">You can also <strong>share a puzzle</strong> by copying the link at the bottom — it encodes the exact starting board so a friend can try the same scramble.</p>
@@ -99,7 +100,7 @@
   <div id="win"><div class="card">
     <h2 data-i18n="win.heading">Solved!</h2>
     <p id="winMsg"></p>
-    <button class="primary" id="winBtn" data-i18n="win.playAgain">Play again</button>
+    <button id="winBtn" data-i18n="win.playAgain">Play again</button>
   </div></div>
 
 <script src="i18n.js"></script>

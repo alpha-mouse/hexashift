@@ -61,6 +61,7 @@ const ARROW_RADIUS=1.78, ARROW_SEP=0.50;
 let initialSolution=null, userMoves=[];
 const tracker=createSolvabilityTracker(s=>solve(s,HALVES,5));
 const arrowByMove=new Map();
+const arrowKeyDir={};   /* halfIndex -> { ArrowUp:dir, ArrowDown, ArrowLeft, ArrowRight } */
 const arrowTitleRefs=[];   /* {el,label,dir} — re-translated on language change */
 HALVES.forEach(half=>{
   const axisAngleRad=half.theta*Math.PI/180;
@@ -87,8 +88,10 @@ HALVES.forEach(half=>{
     const titleElem=document.createElementNS(SVGNS,'title');
     const screenDirX=unitDirX, screenDirY=-unitDirY;
     const arrowDir=Math.abs(screenDirX)>=Math.abs(screenDirY) ? (screenDirX>0?'right':'left') : (screenDirY>0?'down':'up');
+    const halfIndexForKey=HALVES.indexOf(half);
+    (arrowKeyDir[halfIndexForKey]=arrowKeyDir[halfIndexForKey]||{})['Arrow'+arrowDir[0].toUpperCase()+arrowDir.slice(1)]=dir;
     titleElem.textContent=t('arrow.title',{half:t('half.'+half.label),dir:t('arrow.dir.'+arrowDir)});
-    arrowTitleRefs.push({el:titleElem,label:half.label,dir:arrowDir});
+    arrowTitleRefs.push({el:titleElem,label:half.label,dir:arrowDir,numDir:dir});
     arrowGroup.appendChild(hitCircle); arrowGroup.appendChild(arrowPath); arrowGroup.appendChild(titleElem);
     arrowByMove.set(HALVES.indexOf(half)+','+dir, arrowGroup);
     const indicatorsEl=document.getElementById('indicators');
@@ -142,6 +145,7 @@ HALVES.forEach(half=>{
       indAnim.onfinish=()=>{ indAnim.cancel(); indGroup.style.opacity=String(endOpacity); indAnim=null; };
       doMove(half,dir);
       if(isMouse) highlight(half.aff); else clearHighlight();
+      exitSelection();
     });
     controls.appendChild(arrowGroup);
   });
@@ -198,6 +202,103 @@ document.getElementById('winBtn').onclick=()=>{ document.getElementById('win').c
 document.getElementById('undoBtn').onclick=undo;
 document.getElementById('hintBtn').onclick=hint;
 document.getElementById('copyBtn').onclick=copyShareLink;
+
+/* ---- Keyboard shortcuts ---- */
+/* Half selectors: pick a half by its semantic label, independent of HALVES order. */
+const halfByLabel=(halves,label)=>halves.find(h=>h.label===label);
+const TOP   =h=>halfByLabel(h,'Top');
+const BOTTOM=h=>halfByLabel(h,'Bottom');
+const UL    =h=>halfByLabel(h,'Upper-left');
+const UR    =h=>halfByLabel(h,'Upper-right');
+const LL    =h=>halfByLabel(h,'Lower-left');
+const LR    =h=>halfByLabel(h,'Lower-right');
+
+/* ---- Selection mode (1/2 pick a half, arrows shift it) ----
+ * ring = HALVES indices in screen counter-clockwise order. `1` steps +1 (CCW),
+ * `2` steps -1 (CW). selRingPos===null means the mode is inactive. */
+const SEL_RING_LABELS=['Upper-left','Lower-left','Bottom','Lower-right','Upper-right','Top'];
+const selRing=SEL_RING_LABELS.map(label=>HALVES.indexOf(halfByLabel(HALVES,label)));
+const ringPosOf=label=>SEL_RING_LABELS.indexOf(label);
+let selRingPos=null;
+
+/* Each half == 4 consecutive hexagon vertices (VTX). Pick the window whose
+ * centroid direction matches the half's aff-centroid direction. y-up coords;
+ * the outline lives in boardG (scale(1,-1)), so no manual flip. */
+const angDiff=(a,b)=>Math.abs(((a-b+540)%360)-180);
+const selPoints=HALVES.map(half=>{
+  const acx=half.aff.reduce((s,id)=>s+tris[id].cx,0)/half.aff.length;
+  const acy=half.aff.reduce((s,id)=>s+tris[id].cy,0)/half.aff.length;
+  const halfAng=Math.atan2(acy,acx)*180/Math.PI;
+  let best=null,bestDiff=Infinity;
+  for(let i=0;i<VTX.length;i++){
+    const win=[0,1,2,3].map(k=>VTX[(i+k)%VTX.length]);
+    const wcx=win.reduce((s,p)=>s+p[0],0)/4, wcy=win.reduce((s,p)=>s+p[1],0)/4;
+    const diff=angDiff(Math.atan2(wcy,wcx)*180/Math.PI,halfAng);
+    if(diff<bestDiff){bestDiff=diff;best=win;}
+  }
+  return best.map(p=>p.join(',')).join(' ');
+});
+const selHalo=document.createElementNS(SVGNS,'polygon'); selHalo.setAttribute('class','sel halo');
+const selCore=document.createElementNS(SVGNS,'polygon'); selCore.setAttribute('class','sel core');
+selHalo.style.display=selCore.style.display='none';
+boardG.appendChild(selHalo); boardG.appendChild(selCore);
+function showSelection(halfIndex){
+  selHalo.setAttribute('points',selPoints[halfIndex]);
+  selCore.setAttribute('points',selPoints[halfIndex]);
+  selHalo.style.display=selCore.style.display='';
+}
+function exitSelection(){
+  selRingPos=null;
+  selHalo.style.display=selCore.style.display='none';
+}
+/* dir +1 = arrow points up (diagonals) / right (Top·Bottom); -1 = down / left. */
+const KEYMAP={
+  w:{half:TOP(HALVES),    dir:-1}, y:{half:TOP(HALVES),    dir:+1},
+  s:{half:BOTTOM(HALVES), dir:-1}, h:{half:BOTTOM(HALVES), dir:+1},
+  5:{half:UL(HALVES),     dir:+1}, x:{half:UL(HALVES),     dir:-1},
+  4:{half:UR(HALVES),     dir:+1}, b:{half:UR(HALVES),     dir:-1},
+  3:{half:LL(HALVES),     dir:+1}, v:{half:LL(HALVES),     dir:-1},
+  6:{half:LR(HALVES),     dir:+1}, c:{half:LR(HALVES),     dir:-1},
+  z:'undo',
+};
+const keymapByHalfDir={};
+Object.entries(KEYMAP).forEach(([key,entry])=>{
+  if(entry==='undo') return;
+  keymapByHalfDir[entry.half.label+','+entry.dir]=key;
+});
+window.addEventListener('keydown',e=>{
+  if(e.ctrlKey||e.metaKey||e.altKey) return;
+  if(document.getElementById('win').classList.contains('show')){
+    if(e.key==='Enter'||e.key==='Escape'){ e.preventDefault(); document.getElementById('winBtn').click(); }
+    return;
+  }
+  const tag=(e.target&&e.target.tagName||'').toLowerCase();
+  if(tag==='select'||tag==='input'||tag==='textarea') return;
+  if(e.key==='1'||e.key==='2'){
+    e.preventDefault();
+    if(selRingPos===null) selRingPos=ringPosOf(e.key==='1'?'Upper-left':'Upper-right');
+    else selRingPos=(selRingPos+(e.key==='1'?1:-1)+selRing.length)%selRing.length;
+    showSelection(selRing[selRingPos]);
+    return;
+  }
+  if(selRingPos!==null){
+    if(e.key==='Escape'){ e.preventDefault(); exitSelection(); return; }
+    const dirMap=arrowKeyDir[selRing[selRingPos]];
+    const dir=dirMap&&dirMap[e.key];
+    if(dir!==undefined){
+      e.preventDefault();
+      const pos=selRingPos;
+      doMove(HALVES[selRing[pos]],dir);
+      showSelection(selRing[pos]);   // selection persists across the shift
+      return;
+    }
+  }
+  const entry=KEYMAP[e.key.toLowerCase()];
+  if(!entry) return;
+  e.preventDefault();
+  if(entry==='undo') undo();
+  else doMove(entry.half,entry.dir);
+});
 
 /* ---- Theme control ---- */
 const THEME_KEY='hx-theme';
@@ -275,6 +376,7 @@ function newGame(seedValue){
   initialSolution=sol;
   tracker.reset(state);
   userMoves=[];
+  exitSelection();
   updateShareUI();
   updateHintAvailability();
 }
@@ -285,6 +387,7 @@ function loadFingerprint(encodedCode){
   initialBoard=board.slice();
   tracker.reset(state);
   userMoves=[];
+  exitSelection();
   updateShareUI();
   updateHintAvailability();
   return true;
@@ -342,7 +445,7 @@ if(letsPlayBtn) letsPlayBtn.addEventListener('click',()=>{
 /* ---- i18n wiring ---- */
 /* Re-render the JS-built text that applyTranslations (data-i18n attrs) can't reach. */
 function applyDynamicI18n(){
-  arrowTitleRefs.forEach(r=>{ r.el.textContent=t('arrow.title',{half:t('half.'+r.label),dir:t('arrow.dir.'+r.dir)}); });
+  arrowTitleRefs.forEach(r=>{ const key=keymapByHalfDir[r.label+','+r.numDir]; r.el.textContent=t('arrow.title',{half:t('half.'+r.label),dir:t('arrow.dir.'+r.dir),key}); });
   diffOptionRefs.forEach(r=>{ r.opt.textContent=t('difficulty.option',{n:r.n}); });
   const copyButton=document.getElementById('copyBtn');
   if(copyButton && !copyButton.classList.contains('copied')) copyButton.textContent=t('share.copy');

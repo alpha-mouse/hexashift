@@ -10,11 +10,12 @@
   --win-overlay:rgba(8,11,20,.72);
   --panel-shadow:0 10px 40px rgba(0,0,0,.35);
   --card-shadow:0 20px 60px rgba(0,0,0,.5);
+  --sel-core:#fff; --sel-halo:#000;   /* keyboard selection outline */
 }
 /* ---- LIGHT palette ---- */
 :root[data-theme="light"]{
   --bg:#eef1f7; --panel:#ffffff; --ink:#1c2333; --muted:#5d6781;
-  --line:#c4cbdc; --accent:#3a63d8; --good:#1ba974;
+  --line:#3a4256; --accent:#3a63d8; --good:#1ba974;
   --glow:#ffffff;
   --panel-border:#d4dae9;
   --btn-bg:#eef1f8; --btn-bg-hover:#e2e8f6; --btn-border:#c9d2e6;
@@ -23,6 +24,7 @@
   --win-overlay:rgba(230,234,243,.72);
   --panel-shadow:0 10px 40px rgba(40,55,90,.14);
   --card-shadow:0 20px 60px rgba(40,55,90,.22);
+  --sel-core:#1c2333; --sel-halo:#fff;
 }
 /* ---- DARK palette, explicit (data-theme="dark" forces dark even if OS is light) ---- */
 :root[data-theme="dark"]{
@@ -36,13 +38,14 @@
   --win-overlay:rgba(8,11,20,.72);
   --panel-shadow:0 10px 40px rgba(0,0,0,.35);
   --card-shadow:0 20px 60px rgba(0,0,0,.5);
+  --sel-core:#fff; --sel-halo:#000;
 }
 /* ---- SYSTEM mode: no data-theme set => follow OS. Dark is the :root default,
        so we only need to supply the LIGHT overrides when the OS prefers light. ---- */
 @media (prefers-color-scheme: light){
   :root:not([data-theme]){
     --bg:#eef1f7; --panel:#ffffff; --ink:#1c2333; --muted:#5d6781;
-    --line:#c4cbdc; --accent:#3a63d8; --good:#1ba974;
+    --line:#3a4256; --accent:#3a63d8; --good:#1ba974;
     --glow:#ffffff;
     --panel-border:#d4dae9;
     --btn-bg:#eef1f8; --btn-bg-hover:#e2e8f6; --btn-border:#c9d2e6;
@@ -51,6 +54,7 @@
     --win-overlay:rgba(230,234,243,.72);
     --panel-shadow:0 10px 40px rgba(40,55,90,.14);
     --card-shadow:0 20px 60px rgba(40,55,90,.22);
+    --sel-core:#1c2333; --sel-halo:#fff;
   }
 }
 *{box-sizing:border-box}
@@ -97,7 +101,7 @@ button:disabled{opacity:.4; cursor:not-allowed}
 button:disabled:hover{border-color:var(--btn-border); background:var(--btn-bg)}
 button:disabled:active{transform:none}
 .actions button{flex:1; padding:10px}
-.actions button.primary{background:var(--accent); border-color:var(--accent); color:var(--accent-ink); font-weight:600}
+#winBtn{padding:6px 16px}
 
 /* ---- Difficulty selector / Language selector ---- */
 #difficulty,#langCtl{display:flex; flex-direction:column; gap:6px; align-items:center;
@@ -125,6 +129,11 @@ button:disabled:active{transform:none}
 }
 .ctrl.hint-blink path{animation:hintBlink .35s ease-in-out 3}
 .ind-arrow{fill:white; stroke:rgba(0,0,0,0.25); stroke-width:0.04; stroke-linejoin:round}
+
+/* ---- Keyboard selection outline (1/2 pick a half) ---- */
+.sel{fill:none; pointer-events:none; stroke-linejoin:round}
+.sel.halo{stroke:var(--sel-halo); stroke-width:.16}
+.sel.core{stroke:var(--sel-core); stroke-width:.07}
 
 #win{position:fixed; inset:0; background:var(--win-overlay); display:none;
   place-items:center; backdrop-filter:blur(3px)}
