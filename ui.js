@@ -350,7 +350,7 @@ applyTranslations(document);
 applyDynamicI18n();
 onLangChange(applyDynamicI18n);
 
-/* Language selector — populated from registered catalogs; hidden until ≥2 languages exist. */
+/* Language selector — populated from the supported-lang registry; hidden until ≥2 languages exist. */
 (function(){
   const langCtl=document.getElementById('langCtl');
   const langSel=document.getElementById('langSel');
@@ -359,11 +359,15 @@ onLangChange(applyDynamicI18n);
   langs.forEach(code=>{
     const opt=document.createElement('option');
     opt.value=code;
+    /* Prefer the catalog's own lang.name once loaded; fall back to the registry label. */
     const cat=window.HX_I18N[code];
-    opt.textContent=(cat&&cat['lang.name'])||code;
+    opt.textContent=(cat&&cat['lang.name'])||HX_SUPPORTED_LANGS[code]||code;
     langSel.appendChild(opt);
   });
-  langSel.value=getLang();
+  const activeLang=getLang();
+  langSel.value=activeLang;
   langSel.onchange=()=>setLang(langSel.value);
   if(langs.length>=2) langCtl.hidden=false;
+  /* Trigger lazy load if the detected/stored lang's catalog isn't loaded yet. */
+  if(!window.HX_I18N[activeLang]) setLang(activeLang);
 })();

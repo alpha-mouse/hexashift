@@ -12,10 +12,24 @@ const HX_LANG_KEY='hx-lang';
 let HX_ACTIVE=null;
 const HX_LANG_LISTENERS=[];
 
-function supportedLangs(){ return Object.keys(window.HX_I18N); }
+/* Explicit registry — all supported languages, whether their catalogs are loaded or not. */
+const HX_SUPPORTED_LANGS={ en:'English', be:'Беларуская', es:'Español' };
+
+function supportedLangs(){ return Object.keys(HX_SUPPORTED_LANGS); }
+
+function loadLangScript(code){
+  return new Promise((resolve,reject)=>{
+    if(window.HX_I18N[code]){ resolve(); return; }
+    const s=document.createElement('script');
+    s.src=`i18n/${code}.js`;
+    s.onload=resolve;
+    s.onerror=reject;
+    document.head.appendChild(s);
+  });
+}
 
 function storedLang(){
-  try{ const v=localStorage.getItem(HX_LANG_KEY); if(v && window.HX_I18N[v]) return v; }catch(e){}
+  try{ const v=localStorage.getItem(HX_LANG_KEY); if(v && HX_SUPPORTED_LANGS[v]) return v; }catch(e){}
   return null;
 }
 /* First navigator.languages base code (es from es-MX) with a registered catalog, else English. */
@@ -26,9 +40,9 @@ function detectLang(){
   for(const tag of navs){
     if(!tag) continue;
     const base=String(tag).toLowerCase().split('-')[0];
-    if(window.HX_I18N[base]) return base;
+    if(HX_SUPPORTED_LANGS[base]) return base;
   }
-  return window.HX_I18N[HX_LANG_DEFAULT]?HX_LANG_DEFAULT:(supportedLangs()[0]||HX_LANG_DEFAULT);
+  return HX_LANG_DEFAULT;
 }
 function getLang(){ if(!HX_ACTIVE) HX_ACTIVE=detectLang(); return HX_ACTIVE; }
 
@@ -62,9 +76,23 @@ function applyTranslations(root){
 function onLangChange(fn){ if(typeof fn==='function') HX_LANG_LISTENERS.push(fn); }
 
 function setLang(code){
-  if(!window.HX_I18N[code]) return;
-  HX_ACTIVE=code;
-  try{ localStorage.setItem(HX_LANG_KEY,code); }catch(e){}
-  applyTranslations(document);
-  HX_LANG_LISTENERS.forEach(fn=>{ try{ fn(code); }catch(e){} });
+  if(!HX_SUPPORTED_LANGS[code]) return;
+  if(window.HX_I18N[code]){
+    HX_ACTIVE=code;
+    try{ localStorage.setItem(HX_LANG_KEY,code); }catch(e){}
+    applyTranslations(document);
+    HX_LANG_LISTENERS.forEach(fn=>{ try{ fn(code); }catch(e){} });
+    return;
+  }
+  /* Catalog not yet loaded — show hourglass, fetch, then apply. */
+  const spinner=document.getElementById('langLoading');
+  if(spinner) spinner.hidden=false;
+  loadLangScript(code).then(()=>{
+    HX_ACTIVE=code;
+    try{ localStorage.setItem(HX_LANG_KEY,code); }catch(e){}
+    applyTranslations(document);
+    HX_LANG_LISTENERS.forEach(fn=>{ try{ fn(code); }catch(e){} });
+  }).catch(()=>{}).finally(()=>{
+    if(spinner) spinner.hidden=true;
+  });
 }
