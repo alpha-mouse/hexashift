@@ -192,6 +192,37 @@ function solve(state, halves, maxSteps) {
     : null;
 }
 
+/* ---- Solvability tracker — sticky "path to victory" state machine ----
+ * Pure logic, no DOM. solveFn(state) returns an ordered move-list
+ * [{halfIndex,dir},...] solving `state` ([] if already solved), or null when no
+ * in-bound solution exists. At every transition we adopt a fresh bounded
+ * solution when one exists; otherwise we maintain the held path by tracking the
+ * applied move (front-match -> shift; walk-away -> prepend the inverse). Once
+ * acquired, the path stays valid through any later move or undo. */
+function advance(path, move) {
+  if (path[0] && path[0].halfIndex === move.halfIndex && path[0].dir === move.dir) {
+    return path.slice(1);
+  }
+  return [{ halfIndex: move.halfIndex, dir: -move.dir }, ...path];
+}
+function createSolvabilityTracker(solveFn) {
+  let path = null;
+  return {
+    reset(state) { path = solveFn(state); },
+    record(appliedMove, state) {
+      const fresh = solveFn(state);
+      if (fresh != null) { path = fresh; }
+      else if (path && path.length) { path = advance(path, appliedMove); }
+    },
+    hasPath() { return !!(path && path.length); },
+    next() { return (path && path.length) ? path[0] : null; },
+    snapshot() {
+      if (path == null) return path;
+      return path.map(m => ({ halfIndex: m.halfIndex, dir: m.dir }));
+    },
+  };
+}
+
 function rotateColors(ids,dir){
   const rowLength=ids.length, colorValues=ids.map(index=>state[index]);
   ids.forEach((id,index)=>{ state[id]=colorValues[(index-dir+rowLength)%rowLength]; });
@@ -274,6 +305,7 @@ if (typeof module !== 'undefined') {
   module.exports = {
     HALVES, tris,
     scramble, applyHalf, isSolved, solvedBoard, solve,
+    createSolvabilityTracker, advance,
     encodeBoard, decodeBoard, mulberry32,
     getState:    () => state.slice(),
     setRawState: s  => { state = s.slice(); moves = 0; history = []; redoStack = []; },
