@@ -35,6 +35,15 @@ No build step, no dependencies, no framework — everything is inline in `index.
 
   then visit `http://127.0.0.1:8080`.
 
+## Translations
+
+To add a translation:
+1. **Fork** the repository.
+2. **Copy** a translation file from the `i18n/` folder (such as `en.js`).
+3. **Rename** the file after the language code for the language (e.g., `fr.js` for French) and translate the strings inside.
+4. **Add** the language to `HX_SUPPORTED_LANGS` in `i18n.js`. Preferably in ~phonetic order, like wikipedia does that.
+5. **Create a PR** with your changes.
+
 ## Developer
 
 Developed by **Claude** (Anthropic's Claude Code, Opus / Sonnet).

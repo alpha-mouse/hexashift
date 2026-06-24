@@ -13,7 +13,7 @@ let HX_ACTIVE=null;
 const HX_LANG_LISTENERS=[];
 
 /* Explicit registry — all supported languages, whether their catalogs are loaded or not. */
-const HX_SUPPORTED_LANGS={ en:'English', be:'Беларуская', es:'Español' };
+const HX_SUPPORTED_LANGS={ be:'Беларуская', en:'English', es:'Español' };
 
 function supportedLangs(){ return Object.keys(HX_SUPPORTED_LANGS); }
 
