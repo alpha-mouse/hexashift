@@ -17,11 +17,11 @@ window.HX_I18N.es = {
   'help.region':'Cómo jugar',
   'help.heading':'Cómo jugar Hexashift',
   'help.goal':'<strong>Objetivo:</strong> Ordena los 24 triángulos de colores para que cada uno de los seis sectores triangulares grandes sea de un color sólido.',
-  'help.moving':'<strong>Mover piezas:</strong> El tablero se divide en seis <em>mitades</em> (dos filas cada una) a lo largo de tres ejes. Haz clic en una flecha fuera del hexágono para deslizar esa mitad un triángulo a lo largo de su eje. Los triángulos que salen por un extremo aparecen por el otro.',
+  'help.moving':'<strong>Mover piezas:</strong> El tablero se divide en seis <em>mitades</em> (de dos filas cada una) a lo largo de tres ejes. Haz clic en una flecha fuera del hexágono para deslizar esa mitad la distancia de un triángulo a lo largo de su eje. Los triángulos que salen por un extremo aparecen por el otro.',
   'help.hovering':'<strong>Pasar el cursor</strong> sobre una flecha resalta los triángulos que se moverán.',
-  'help.buttons':'<strong>Deshacer</strong> retrocede tus movimientos; <strong>Pista</strong> parpadea una flecha sugerida. <strong>Nueva partida</strong> genera un nuevo puzzle. Para reiniciar — <strong>recarga</strong> la página.',
-  'help.difficulty':'<strong>La dificultad</strong> establece cuántos movimientos de mezcla se aplican al inicio — menos movimientos significa un puzzle más simple, más cerca del estado resuelto.',
-  'help.share':'También puedes <strong>compartir un puzzle</strong> copiando el enlace al final — codifica el tablero exacto de inicio para que un amigo pueda intentar el mismo puzzle.',
+  'help.buttons':'<strong>Deshacer</strong> retrocede un movimiento; <strong>Pista</strong> hace parpadear una flecha sugerida. <strong>Nueva partida</strong> genera un nuevo rompecabezas. Para reiniciar — <strong>recarga</strong> la página.',
+  'help.difficulty':'<strong>La dificultad</strong> establece cuántos movimientos de mezcla se aplican al inicio — menos movimientos significan un rompecabezas más sencillo, más cerca del estado resuelto.',
+  'help.share':'También puedes <strong>compartir un rompecabezas</strong> copiando el enlace al final —este codifica la configuración inicial exacta del tablero para que un amigo pueda intentar el mismo rompecabezas.',
   'help.letsPlay':'¡A jugar!',
 
   /* Board + HUD */
@@ -33,7 +33,7 @@ window.HX_I18N.es = {
   'difficulty.label':'Dificultad',
 
   /* Share + footer */
-  'share.label':'Comparte este puzzle',
+  'share.label':'Comparte este rompecabezas',
   'share.copy':'Copiar enlace',
   'share.copied':'¡Copiado!',
   'footer.github':'GitHub',
@@ -50,11 +50,11 @@ window.HX_I18N.es = {
   'half.Upper-left':'superior izquierda',
   'half.Lower-left':'inferior izquierda',
   'half.Lower-right':'inferior derecha',
-  'arrow.dir.right':'derecha',
-  'arrow.dir.left':'izquierda',
+  'arrow.dir.right':'la derecha',
+  'arrow.dir.left':'la izquierda',
   'arrow.dir.up':'arriba',
   'arrow.dir.down':'abajo',
-  'arrow.title':(p)=>`Deslizar mitad ${p.half} hacia ${p.dir}`,
+  'arrow.title':(p)=>`Deslizar la mitad ${p.half} hacia ${p.dir}`,
 
   /* Difficulty options */
   'difficulty.option':(p)=>`A ${p.n} del objetivo`,
