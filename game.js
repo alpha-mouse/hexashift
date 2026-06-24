@@ -45,6 +45,7 @@ function buildAxis(axisAngleDeg){
 }
 const AXES=[0,60,120].map(buildAxis);
 
+/* label strings are i18n keys (ui.js renders them via t('half.'+label)), not display text. */
 const DIRS=[[90,'Top'],[270,'Bottom'],[30,'Upper-right'],[150,'Upper-left'],[210,'Lower-left'],[330,'Lower-right']];
 function labelFromAngle(deg){
   deg=(deg+360)%360; let bestLabel='',bestDiff=1e9;

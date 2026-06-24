@@ -58,6 +58,7 @@ const ARROW_RADIUS=1.78, ARROW_SEP=0.50;
 let initialSolution=null, userMoves=[];
 const tracker=createSolvabilityTracker(s=>solve(s,HALVES,5));
 const arrowByMove=new Map();
+const arrowTitleRefs=[];   /* {el,label,dir} — re-translated on language change */
 HALVES.forEach(half=>{
   const axisAngleRad=half.theta*Math.PI/180;
   [1,-1].forEach(dir=>{
@@ -83,7 +84,8 @@ HALVES.forEach(half=>{
     const titleElem=document.createElementNS(SVGNS,'title');
     const screenDirX=unitDirX, screenDirY=-unitDirY;
     const arrowDir=Math.abs(screenDirX)>=Math.abs(screenDirY) ? (screenDirX>0?'right':'left') : (screenDirY>0?'down':'up');
-    titleElem.textContent=`Drag ${half.label.toLowerCase()} half ${arrowDir}`;
+    titleElem.textContent=t('arrow.title',{half:t('half.'+half.label),dir:t('arrow.dir.'+arrowDir)});
+    arrowTitleRefs.push({el:titleElem,label:half.label,dir:arrowDir});
     arrowGroup.appendChild(hitCircle); arrowGroup.appendChild(arrowPath); arrowGroup.appendChild(titleElem);
     arrowByMove.set(HALVES.indexOf(half)+','+dir, arrowGroup);
     const indicatorsEl=document.getElementById('indicators');
@@ -144,7 +146,7 @@ HALVES.forEach(half=>{
 
 /* ---- 6. Win + buttons ---- */
 function win(){
-  document.getElementById('winMsg').textContent=`You sorted the hexagon in ${moves} moves.`;
+  document.getElementById('winMsg').textContent=t('win.msg',{moves});
   document.getElementById('win').classList.add('show');
 }
 
@@ -219,11 +221,13 @@ applyTheme(getTheme());
 
 /* ---- Difficulty selector ---- */
 const difficultySel=document.getElementById('difficultySel');
+const diffOptionRefs=[];   /* {opt,n} — re-translated on language change */
 if(difficultySel){
   DIFF_OPTIONS.forEach(n=>{
     const opt=document.createElement('option');
-    opt.value=String(n); opt.textContent=`Off by ${n}`;
+    opt.value=String(n); opt.textContent=t('difficulty.option',{n});
     difficultySel.appendChild(opt);
+    diffOptionRefs.push({opt,n});
   });
   difficultySel.value=String(getDifficulty());
   difficultySel.onchange=()=>{
@@ -247,7 +251,7 @@ function updateShareUI(){
   const shareLinkElem=document.getElementById('shareLink');
   if(shareLinkElem){ shareLinkElem.href=url; shareLinkElem.textContent=url; }
   const copyButton=document.getElementById('copyBtn');
-  if(copyButton){ copyButton.classList.remove('copied'); copyButton.textContent='Copy link'; }
+  if(copyButton){ copyButton.classList.remove('copied'); copyButton.textContent=t('share.copy'); }
   try{ window.history.replaceState(null,'',url); }catch(e){}
 }
 function newGame(seedValue){
@@ -285,8 +289,8 @@ function loadFingerprint(encodedCode){
 function copyShareLink(){
   const url=shareUrl(encodeBoard(initialBoard));
   const copyButton=document.getElementById('copyBtn');
-  const markCopied=()=>{ if(copyButton){ copyButton.classList.add('copied'); copyButton.textContent='Copied!';
-    setTimeout(()=>{ copyButton.classList.remove('copied'); copyButton.textContent='Copy link'; },1400); } };
+  const markCopied=()=>{ if(copyButton){ copyButton.classList.add('copied'); copyButton.textContent=t('share.copied');
+    setTimeout(()=>{ copyButton.classList.remove('copied'); copyButton.textContent=t('share.copy'); },1400); } };
   const copyFallback=()=>{
     try{
       const textArea=document.createElement('textarea');
@@ -330,4 +334,36 @@ if(letsPlayBtn) letsPlayBtn.addEventListener('click',()=>{
   try{ fingerprintCode=new URL(location.href).searchParams.get(FP_PARAM); }catch(e){}
   if(fingerprintCode && loadFingerprint(fingerprintCode)) return;
   newGame();
+})();
+
+/* ---- i18n wiring ---- */
+/* Re-render the JS-built text that applyTranslations (data-i18n attrs) can't reach. */
+function applyDynamicI18n(){
+  arrowTitleRefs.forEach(r=>{ r.el.textContent=t('arrow.title',{half:t('half.'+r.label),dir:t('arrow.dir.'+r.dir)}); });
+  diffOptionRefs.forEach(r=>{ r.opt.textContent=t('difficulty.option',{n:r.n}); });
+  const copyButton=document.getElementById('copyBtn');
+  if(copyButton && !copyButton.classList.contains('copied')) copyButton.textContent=t('share.copy');
+  const winEl=document.getElementById('win');
+  if(winEl && winEl.classList.contains('show')) document.getElementById('winMsg').textContent=t('win.msg',{moves});
+}
+applyTranslations(document);
+applyDynamicI18n();
+onLangChange(applyDynamicI18n);
+
+/* Language selector — populated from registered catalogs; hidden until ≥2 languages exist. */
+(function(){
+  const langCtl=document.getElementById('langCtl');
+  const langSel=document.getElementById('langSel');
+  if(!langCtl||!langSel) return;
+  const langs=supportedLangs();
+  langs.forEach(code=>{
+    const opt=document.createElement('option');
+    opt.value=code;
+    const cat=window.HX_I18N[code];
+    opt.textContent=(cat&&cat['lang.name'])||code;
+    langSel.appendChild(opt);
+  });
+  langSel.value=getLang();
+  langSel.onchange=()=>setLang(langSel.value);
+  if(langs.length>=2) langCtl.hidden=false;
 })();
