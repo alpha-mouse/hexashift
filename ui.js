@@ -1,5 +1,30 @@
 "use strict";
 
+function advance(path, move) {
+  if (path[0] && path[0].halfIndex === move.halfIndex && path[0].dir === move.dir) {
+    return path.slice(1);
+  }
+  return [{ halfIndex: move.halfIndex, dir: -move.dir }, ...path];
+}
+
+function createSolvabilityTracker(solveFn) {
+  let path = null;
+  return {
+    reset(state) { path = solveFn(state); },
+    record(appliedMove, state) {
+      const fresh = solveFn(state);
+      if (fresh != null) { path = fresh; }
+      else if (path && path.length) { path = advance(path, appliedMove); }
+    },
+    hasPath() { return !!(path && path.length); },
+    next() { return (path && path.length) ? path[0] : null; },
+    snapshot() {
+      if (path == null) return path;
+      return path.map(m => ({ halfIndex: m.halfIndex, dir: m.dir }));
+    },
+  };
+}
+
 /* ---- Difficulty ---- */
 const DIFF_KEY='hx-difficulty';
 const DIFF_OPTIONS=[1,2,3,4,5,8,13,21];

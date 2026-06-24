@@ -1,7 +1,7 @@
 "use strict";
 
 const G = require('./game.js');
-const { solve } = require('./solver.js');
+const { solve } = require('./game.js');
 
 // Apply solver move-list to a state snapshot; return { solved }
 function simulate(initialState, moves) {
