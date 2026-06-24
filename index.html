@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Hexashift</title>
+<title data-i18n="app.title">Hexashift</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='-2.2 -2 4.4 4'%3E%3Cpolygon points='0,0 2,0 1,-1.732' fill='%23e74c3c'/%3E%3Cpolygon points='0,0 1,-1.732 -1,-1.732' fill='%23e67e22'/%3E%3Cpolygon points='0,0 -1,-1.732 -2,0' fill='%23f1c40f'/%3E%3Cpolygon points='0,0 -2,0 -1,1.732' fill='%232ecc71'/%3E%3Cpolygon points='0,0 -1,1.732 1,1.732' fill='%233498db'/%3E%3Cpolygon points='0,0 1,1.732 2,0' fill='%239b59b6'/%3E%3Cpolygon points='2,0 1,-1.732 -1,-1.732 -2,0 -1,1.732 1,1.732' fill='none' stroke='%23000' stroke-width='.18'/%3E%3C/svg%3E">
 <script>
   /* Apply saved theme before first paint to avoid a flash of the wrong palette. */
@@ -14,6 +14,10 @@
       /* 'system' or missing => no attribute, CSS prefers-color-scheme decides */
     }catch(e){}
   })();
+  /* Reflect a saved language override on <html lang> early; full text is translated once scripts load. */
+  (function(){
+    try{ var l=localStorage.getItem('hx-lang'); if(l) document.documentElement.lang=l; }catch(e){}
+  })();
 </script>
 <link rel="stylesheet" href="style.css">
 </head>
@@ -21,36 +25,36 @@
   <header>
     <button id="helpToggle" type="button" aria-expanded="false" aria-controls="helpPanel">
       <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-      How to play
+      <span data-i18n="header.howToPlay">How to play</span>
     </button>
     <h1>Hexashift</h1>
-    <div id="themeCtl" role="group" aria-label="Theme">
-      <button id="themeLight" type="button" title="Light theme" aria-label="Light theme">
+    <div id="themeCtl" role="group" aria-label="Theme" data-i18n-attr="aria-label:theme.group">
+      <button id="themeLight" type="button" title="Light theme" aria-label="Light theme" data-i18n-attr="title:theme.light;aria-label:theme.light">
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
       </button>
-      <button id="themeSystem" type="button" title="System theme" aria-label="System theme">
+      <button id="themeSystem" type="button" title="System theme" aria-label="System theme" data-i18n-attr="title:theme.system;aria-label:theme.system">
         <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="1"/><path d="M8 20h8M12 16v4"/></svg>
       </button>
-      <button id="themeDark" type="button" title="Dark theme" aria-label="Dark theme">
+      <button id="themeDark" type="button" title="Dark theme" aria-label="Dark theme" data-i18n-attr="title:theme.dark;aria-label:theme.dark">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
       </button>
     </div>
   </header>
 
   <main>
-    <div id="helpPanel" role="region" aria-label="How to play">
-      <h2>How to play Hexashift</h2>
-      <p><strong>Goal:</strong> Arrange all 24 colored triangles so that each of the six big sector-triangles is one solid color.</p>
-      <p><strong>Moving pieces:</strong> The board is divided into six <em>halves</em> (two rows each) along three axes. Click an arrow outside the hexagon to slide that half one triangle along its axis. Triangles that run off one end wrap around to the other.</p>
-      <p><strong>Hovering</strong> an arrow highlights the triangles that will move.</p>
-      <p><strong>Undo</strong> steps back through your moves; <strong>Hint</strong> blinks a suggested arrow. <strong>New game</strong> scrambles a fresh puzzle. To restart - <strong>refresh</strong> the page.</p>
-      <p><strong>Difficulty</strong> sets how many scramble moves are applied at the start — fewer moves means a simpler puzzle closer to the solved state.</p>
-      <p>You can also <strong>share a puzzle</strong> by copying the link at the bottom — it encodes the exact starting board so a friend can try the same scramble.</p>
-      <button id="letsPlayBtn" type="button">Let's play!</button>
+    <div id="helpPanel" role="region" aria-label="How to play" data-i18n-attr="aria-label:help.region">
+      <h2 data-i18n="help.heading">How to play Hexashift</h2>
+      <p data-i18n-html="help.goal"><strong>Goal:</strong> Arrange all 24 colored triangles so that each of the six big sector-triangles is one solid color.</p>
+      <p data-i18n-html="help.moving"><strong>Moving pieces:</strong> The board is divided into six <em>halves</em> (two rows each) along three axes. Click an arrow outside the hexagon to slide that half one triangle along its axis. Triangles that run off one end wrap around to the other.</p>
+      <p data-i18n-html="help.hovering"><strong>Hovering</strong> an arrow highlights the triangles that will move.</p>
+      <p data-i18n-html="help.buttons"><strong>Undo</strong> steps back through your moves; <strong>Hint</strong> blinks a suggested arrow. <strong>New game</strong> scrambles a fresh puzzle. To restart - <strong>refresh</strong> the page.</p>
+      <p data-i18n-html="help.difficulty"><strong>Difficulty</strong> sets how many scramble moves are applied at the start — fewer moves means a simpler puzzle closer to the solved state.</p>
+      <p data-i18n-html="help.share">You can also <strong>share a puzzle</strong> by copying the link at the bottom — it encodes the exact starting board so a friend can try the same scramble.</p>
+      <button id="letsPlayBtn" type="button" data-i18n="help.letsPlay">Let's play!</button>
     </div>
 
     <div id="boardWrap">
-      <svg id="board" viewBox="-2.6 -2.45 5.2 4.9" aria-label="Hexashift board">
+      <svg id="board" viewBox="-2.6 -2.45 5.2 4.9" aria-label="Hexashift board" data-i18n-attr="aria-label:board.aria">
         <g transform="scale(1,-1)" id="boardG"></g>
         <g id="controls"></g>
         <g id="indicators"></g>
@@ -59,44 +63,49 @@
 
     <div id="hud">
       <div class="stats">
-        <div class="stat"><b id="movesN">0</b><span>Moves</span></div>
-        <button id="newBtn">New game</button>
+        <div class="stat"><b id="movesN">0</b><span data-i18n="hud.moves">Moves</span></div>
+        <button id="newBtn" data-i18n="btn.new">New game</button>
       </div>
       <div class="actions">
-        <button id="undoBtn">Undo</button>
-        <button id="hintBtn">Hint</button>
+        <button id="undoBtn" data-i18n="btn.undo">Undo</button>
+        <button id="hintBtn" data-i18n="btn.hint">Hint</button>
       </div>
     </div>
 
     <div id="difficulty">
-      <label for="difficultySel">Difficulty</label>
-      <select id="difficultySel" aria-label="Difficulty"></select>
+      <label for="difficultySel" data-i18n="difficulty.label">Difficulty</label>
+      <select id="difficultySel" aria-label="Difficulty" data-i18n-attr="aria-label:difficulty.label"></select>
+    </div>
+
+    <div id="langCtl" hidden>
+      <div class="lang-label-row"><label for="langSel" data-i18n="lang.label">Language</label><span id="langLoading" hidden>⌛</span></div>
+      <select id="langSel" aria-label="Language" data-i18n-attr="aria-label:lang.label"></select>
     </div>
   </main>
 
   <footer>
     <div id="share">
-      <span class="lbl">Share this puzzle</span>
+      <span class="lbl" data-i18n="share.label">Share this puzzle</span>
       <div class="row">
         <a id="shareLink" href="#" rel="noopener">link</a>
-        <button id="copyBtn" type="button">Copy link</button>
+        <button id="copyBtn" type="button" data-i18n="share.copy">Copy link</button>
       </div>
     </div>
     <div id="github">
-      <a href="https://github.com/alpha-mouse/hexashift" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://github.com/alpha-mouse/hexashift" target="_blank" rel="noopener" data-i18n="footer.github">GitHub</a>
     </div>
   </footer>
 
   <div id="win"><div class="card">
-    <h2>Solved!</h2>
+    <h2 data-i18n="win.heading">Solved!</h2>
     <p id="winMsg"></p>
-    <button class="primary" id="winBtn">Play again</button>
+    <button class="primary" id="winBtn" data-i18n="win.playAgain">Play again</button>
   </div></div>
 
+<script src="i18n.js"></script>
+<script src="i18n/en.js"></script>
 <script src="game.js"></script>
-<script src="solver.js"></script>
-<script src="tracker.js"></script>
 <script src="ui.js"></script>
-<script src="test-harness.js"></script>
+<script defer src="test-harness.js"></script>
 </body>
 </html>

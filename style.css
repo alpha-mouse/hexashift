@@ -99,19 +99,21 @@ button:disabled:active{transform:none}
 .actions button{flex:1; padding:10px}
 .actions button.primary{background:var(--accent); border-color:var(--accent); color:var(--accent-ink); font-weight:600}
 
-/* ---- Difficulty selector ---- */
-#difficulty{display:flex; flex-direction:column; gap:6px; align-items:center;
+/* ---- Difficulty selector / Language selector ---- */
+#difficulty,#langCtl{display:flex; flex-direction:column; gap:6px; align-items:center;
   width:100%;}
-#difficulty label{color:var(--muted); font-size:11px; text-transform:uppercase;
+#difficulty label,#langCtl label{color:var(--muted); font-size:11px; text-transform:uppercase;
   letter-spacing:.6px}
-#difficulty select{
+.lang-label-row{display:flex; align-items:center; gap:4px}
+#langLoading{font-size:11px; line-height:1}
+#difficulty select,#langCtl select{
   font:inherit; color:var(--ink); cursor:pointer; width:100%;
   padding:9px 12px; border-radius:10px;
   border:1px solid var(--btn-border); background:var(--btn-bg); transition:.12s;
 }
-#difficulty select:hover{border-color:var(--accent); background:var(--btn-bg-hover)}
-#difficulty select:focus{outline:none; border-color:var(--accent)}
-#difficulty select option{background:var(--panel); color:var(--ink)}
+#difficulty select:hover,#langCtl select:hover{border-color:var(--accent); background:var(--btn-bg-hover)}
+#difficulty select:focus,#langCtl select:focus{outline:none; border-color:var(--accent)}
+#difficulty select option,#langCtl select option{background:var(--panel); color:var(--ink)}
 
 .ctrl{cursor:pointer}
 .ctrl path{fill:var(--muted); transition:fill .12s ease}

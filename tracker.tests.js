@@ -1,8 +1,7 @@
 "use strict";
 
 const G = require('./game.js');
-const { solve } = require('./solver.js');
-const { createSolvabilityTracker, advance } = require('./tracker.js');
+const { solve, createSolvabilityTracker, advance } = require('./game.js');
 
 let passed = 0;
 let total = 0;

@@ -24,6 +24,10 @@ Include all of:
 - Expected observable behavior: what Playwright should see / interact with
 - The exact tasks.md bullet to remove, if this came from the task list
 - Any non-obvious constraints the agent wouldn't derive from CLAUDE.md
+- Reminder to use CLAUDE.md's approval-free server loop for Playwright checks: start
+  `http-server -p 15373 -c-1 .` via Bash `run_in_background: true` (exact command, nothing
+  appended), stop it with `TaskStop` on the returned `task_id`, close the page with
+  `browser_close`. No `kill`/`pkill`/`&`.
 
 ## Spawn `feature-developer` agent
 

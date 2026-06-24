@@ -3,19 +3,35 @@ Hexashift — a browser puzzle game. Arrange 24 colored triangles in a flat-top
 hexagon so each of the 6 big sector-triangles is one solid color.
 
 ## Run / verify
-No build, no dependencies, no framework. Source split across `index.html`, `style.css`, `game.js`, `solver.js`, `ui.js`, `test-harness.js` (loaded in that order). `solver.tests.js` runs under Node.
+No build, no dependencies, no framework. Source split across `index.html`, `style.css`, `i18n.js`, `i18n/*.js`, `game.js`, `solver.js`, `ui.js`, `test-harness.js` (loaded in that order). `solver.tests.js` runs under Node.
 - Open `index.html` in a browser, or serve the folder statically.
-- For Playwright MCP tests serve the folder (Node), then navigate to `http://127.0.0.1:15373`.
-  Use exactly one of these whitelisted commands (no `npx`, no extra flags — anything else prompts):
-  - Foreground: `http-server -p 15373 -c-1 .`
-  - Background w/ log: `http-server -p 15373 -c-1 . >/tmp/hx-server.log 2>&1 &`
-- Verify changes with the Playwright MCP browser tools (load the file, click controls, screenshot).
+- For Playwright MCP tests, serve the folder then navigate to `http://127.0.0.1:15373`.
+  **Approval-free start/stop loop (no `kill`/`pkill`/`&` needed):**
+  - **Start:** run the Bash tool with `run_in_background: true` and the command **exactly**
+    `http-server -p 15373 -c-1 .` (the whitelisted foreground form). Do **not** append
+    `sleep`, `cat`, `&`, or a log redirect — anything extra breaks the whitelist match and
+    prompts. The tool returns a `task_id`.
+  - **Wait for ready:** just call `browser_navigate` (it retries), or `Read` the task's
+    output file. Don't poll with a shell command.
+  - **Stop server:** call `TaskStop` with that `task_id` (harness-managed — no Bash approval).
+    `kill %1` does NOT work: each Bash call is a fresh shell, so the job table is empty.
+  - **Close browser:** `mcp__playwright__browser_close` (closes the page only, not the
+    server — stop the server with `TaskStop` separately).
+- Verify changes with the Playwright MCP browser tools (load the page, click controls, screenshot).
 - `window.__hx` exposes internals (`state`, `isSolved`, `solvedCount`, `scramble`, `doMove`) for self-tests.
 
 ## Architecture
 
-`index.html` — HTML structure, inline theme-flash script, loads `style.css` then scripts in order.
+`index.html` — HTML structure, inline theme-flash + lang-flash scripts, loads `style.css` then scripts in order. User-facing text is annotated with `data-i18n` (textContent), `data-i18n-html` (innerHTML, rich help markup), `data-i18n-attr="attr:key;…"` (attributes like title/aria-label).
 `style.css` — all styles.
+`i18n.js` — i18n core (loads before everything). Catalogs register into `window.HX_I18N[lang]`
+  (value = string or `(params)=>string` for plurals). `detectLang()` = stored override → first
+  `navigator.languages` base match → English. `t(key,params)` resolves active→en→key.
+  `applyTranslations()` repaints `data-i18n*` DOM; `setLang()` persists (`hx-lang`) + notifies
+  `onLangChange` listeners. `ui.js` re-renders JS-built text (arrow titles, difficulty options,
+  copy button, win msg) via `applyDynamicI18n`. Add a language: copy `i18n/en.js` → `i18n/xx.js`,
+  translate, add its `<script>` before `game.js`. The `#langCtl` selector auto-shows once ≥2 langs.
+`i18n/en.js` — English reference catalog (every translatable string).
 `game.js` — pure game logic (no DOM), numbered sections:
   1. **Build triangles** — 24 triangles from 5 horizontal grid lines of a side-2 hexagon. Each gets
      `id`, centroid `cx/cy`, and `sector` 0..5 (60° wedge from centroid angle). SVG is y-up; the

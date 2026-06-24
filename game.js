@@ -45,6 +45,7 @@ function buildAxis(axisAngleDeg){
 }
 const AXES=[0,60,120].map(buildAxis);
 
+/* label strings are i18n keys (ui.js renders them via t('half.'+label)), not display text. */
 const DIRS=[[90,'Top'],[270,'Bottom'],[30,'Upper-right'],[150,'Upper-left'],[210,'Lower-left'],[330,'Lower-right']];
 function labelFromAngle(deg){
   deg=(deg+360)%360; let bestLabel='',bestDiff=1e9;
@@ -82,6 +83,144 @@ function solvedBoard(){
   for(let sectorIndex=0;sectorIndex<NUM_SECTORS;sectorIndex++)
     tris.filter(triangle=>triangle.sector===sectorIndex).forEach(triangle=>board[triangle.id]=sectorIndex);
   return board;
+}
+
+// Canonical key: colors are 0..5, so join('') is a unique 24-char string.
+function keyOf(board) { return board.join(''); }
+
+// Mirror of rotateColors/applyHalf, precomputed as position perms:
+//   applying (halfIndex,dir) gives  out[p] = board[perm[p]].
+// 12 generators = 6 halves x dir(+1,-1). Inverse of (h,dir) is (h,-dir).
+function buildMoves(halves) {
+  const moves = [];
+  for (let hi = 0; hi < halves.length; hi++) {
+    const half = halves[hi];
+    for (const dir of [1, -1]) {
+      const perm = new Array(NUM_TRIANGLES);
+      for (let i = 0; i < NUM_TRIANGLES; i++) perm[i] = i;
+      for (const row of half.rows) {
+        const len = row.length;
+        for (let i = 0; i < len; i++) perm[row[i]] = row[(i - dir + len) % len];
+      }
+      moves.push({ halfIndex: hi, dir, perm });
+    }
+  }
+  return moves;
+}
+
+function applyPerm(board, perm) {
+  const out = new Array(NUM_TRIANGLES);
+  for (let i = 0; i < NUM_TRIANGLES; i++) out[i] = board[perm[i]];
+  return out;
+}
+
+function expandPly(frontier, curDist, own, other, moves) {
+  const next = [];
+  const meets = [];
+  for (const b of frontier) {
+    const k = keyOf(b);
+    for (const mv of moves) {
+      const nb = applyPerm(b, mv.perm);
+      const nk = keyOf(nb);
+      if (own.has(nk)) continue;
+      own.set(nk, { half: mv.halfIndex, dir: mv.dir, parent: k, dist: curDist + 1 });
+      const o = other.get(nk);
+      if (o) meets.push({ key: nk, total: curDist + 1 + o.dist });
+      next.push(nb);
+    }
+  }
+  return { next, meets };
+}
+
+function reconstruct(meetKey, fwd, back) {
+  const fwdMoves = [];
+  let k = meetKey;
+  while (fwd.get(k).parent !== null) {
+    const n = fwd.get(k);
+    fwdMoves.push({ halfIndex: n.half, dir: n.dir });
+    k = n.parent;
+  }
+  fwdMoves.reverse();
+
+  const backMoves = [];
+  k = meetKey;
+  while (back.get(k).parent !== null) {
+    const n = back.get(k);
+    backMoves.push({ halfIndex: n.half, dir: -n.dir });
+    k = n.parent;
+  }
+  return fwdMoves.concat(backMoves);
+}
+
+// Bounded bidirectional BFS. Returns move list if solution <= maxSteps exists, else null.
+function solve(state, halves, maxSteps) {
+  if (maxSteps === undefined) maxSteps = 5;
+  const moves = buildMoves(halves);
+  const start = state.slice();
+  const startKey = keyOf(start);
+
+  const goal = solvedBoard();
+  const goalKey = keyOf(goal);
+  if (startKey === goalKey) return [];
+  if (maxSteps < 1) return null;
+
+  const fwd = new Map();
+  const back = new Map();
+  fwd.set(startKey, { half: -1, dir: 0, parent: null, dist: 0 });
+  back.set(goalKey, { half: -1, dir: 0, parent: null, dist: 0 });
+  let fwdFrontier = [start], backFrontier = [goal];
+  let fwdDist = 0, backDist = 0;
+  let bestTotal = Infinity, bestMeet = null;
+
+  while (fwdDist + backDist < maxSteps && fwdFrontier.length && backFrontier.length) {
+    let res;
+    if (fwd.size <= back.size) {
+      res = expandPly(fwdFrontier, fwdDist, fwd, back, moves);
+      fwdFrontier = res.next; fwdDist++;
+    } else {
+      res = expandPly(backFrontier, backDist, back, fwd, moves);
+      backFrontier = res.next; backDist++;
+    }
+    for (const m of res.meets) {
+      if (m.total < bestTotal) { bestTotal = m.total; bestMeet = m.key; }
+    }
+    if (bestMeet !== null) return reconstruct(bestMeet, fwd, back);
+  }
+
+  return (bestMeet !== null && bestTotal <= maxSteps)
+    ? reconstruct(bestMeet, fwd, back)
+    : null;
+}
+
+/* ---- Solvability tracker — sticky "path to victory" state machine ----
+ * Pure logic, no DOM. solveFn(state) returns an ordered move-list
+ * [{halfIndex,dir},...] solving `state` ([] if already solved), or null when no
+ * in-bound solution exists. At every transition we adopt a fresh bounded
+ * solution when one exists; otherwise we maintain the held path by tracking the
+ * applied move (front-match -> shift; walk-away -> prepend the inverse). Once
+ * acquired, the path stays valid through any later move or undo. */
+function advance(path, move) {
+  if (path[0] && path[0].halfIndex === move.halfIndex && path[0].dir === move.dir) {
+    return path.slice(1);
+  }
+  return [{ halfIndex: move.halfIndex, dir: -move.dir }, ...path];
+}
+function createSolvabilityTracker(solveFn) {
+  let path = null;
+  return {
+    reset(state) { path = solveFn(state); },
+    record(appliedMove, state) {
+      const fresh = solveFn(state);
+      if (fresh != null) { path = fresh; }
+      else if (path && path.length) { path = advance(path, appliedMove); }
+    },
+    hasPath() { return !!(path && path.length); },
+    next() { return (path && path.length) ? path[0] : null; },
+    snapshot() {
+      if (path == null) return path;
+      return path.map(m => ({ halfIndex: m.halfIndex, dir: m.dir }));
+    },
+  };
 }
 
 function rotateColors(ids,dir){
@@ -165,7 +304,8 @@ function doMoveByIndex(halfIndex,dir){ doMove(HALVES[halfIndex], dir); }
 if (typeof module !== 'undefined') {
   module.exports = {
     HALVES, tris,
-    scramble, applyHalf, isSolved, solvedBoard,
+    scramble, applyHalf, isSolved, solvedBoard, solve,
+    createSolvabilityTracker, advance,
     encodeBoard, decodeBoard, mulberry32,
     getState:    () => state.slice(),
     setRawState: s  => { state = s.slice(); moves = 0; history = []; redoStack = []; },
