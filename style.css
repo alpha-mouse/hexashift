@@ -105,6 +105,7 @@ button:disabled:active{transform:none}
 #difficulty label,#langCtl label{color:var(--muted); font-size:11px; text-transform:uppercase;
   letter-spacing:.6px}
 .lang-label-row{display:flex; align-items:center; gap:4px}
+#langLoading{font-size:11px; line-height:1}
 #difficulty select,#langCtl select{
   font:inherit; color:var(--ink); cursor:pointer; width:100%;
   padding:9px 12px; border-radius:10px;
