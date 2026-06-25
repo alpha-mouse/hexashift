@@ -89,7 +89,12 @@ HALVES.forEach(half=>{
     const screenDirX=unitDirX, screenDirY=-unitDirY;
     const arrowDir=Math.abs(screenDirX)>=Math.abs(screenDirY) ? (screenDirX>0?'right':'left') : (screenDirY>0?'down':'up');
     const halfIndexForKey=HALVES.indexOf(half);
-    (arrowKeyDir[halfIndexForKey]=arrowKeyDir[halfIndexForKey]||{})['Arrow'+arrowDir[0].toUpperCase()+arrowDir.slice(1)]=dir;
+    const keyDirMap=(arrowKeyDir[halfIndexForKey]=arrowKeyDir[halfIndexForKey]||{});
+    keyDirMap['Arrow'+arrowDir[0].toUpperCase()+arrowDir.slice(1)]=dir;
+    /* Diagonal halves are vertical-dominant; also bind the off-axis ←/→ to the same
+     * dir so a left/right slide works too (Top/Bottom keep left/right only — no spurious up/down). */
+    if(Math.abs(screenDirX)<Math.abs(screenDirY) && Math.abs(screenDirX)>1e-6)
+      keyDirMap[screenDirX>0?'ArrowRight':'ArrowLeft']=dir;
     titleElem.textContent=t('arrow.title',{half:t('half.'+half.label),dir:t('arrow.dir.'+arrowDir)});
     arrowTitleRefs.push({el:titleElem,label:half.label,dir:arrowDir,numDir:dir});
     arrowGroup.appendChild(hitCircle); arrowGroup.appendChild(arrowPath); arrowGroup.appendChild(titleElem);
@@ -254,32 +259,40 @@ function exitSelection(){
   selHalo.style.display=selCore.style.display='none';
 }
 /* dir +1 = arrow points up (diagonals) / right (Top·Bottom); -1 = down / left. */
+/* Keyed by physical key position (e.code), so hotkeys work regardless of the OS
+ * keyboard layout — a non-QWERTY user presses the same physical key. */
 const KEYMAP={
-  w:{half:TOP(HALVES),    dir:-1}, y:{half:TOP(HALVES),    dir:+1},
-  s:{half:BOTTOM(HALVES), dir:-1}, h:{half:BOTTOM(HALVES), dir:+1},
-  5:{half:UL(HALVES),     dir:+1}, x:{half:UL(HALVES),     dir:-1},
-  4:{half:UR(HALVES),     dir:+1}, b:{half:UR(HALVES),     dir:-1},
-  3:{half:LL(HALVES),     dir:+1}, v:{half:LL(HALVES),     dir:-1},
-  6:{half:LR(HALVES),     dir:+1}, c:{half:LR(HALVES),     dir:-1},
-  z:'undo',
+  KeyW:{half:TOP(HALVES),    dir:-1}, KeyY:{half:TOP(HALVES),    dir:+1},
+  KeyS:{half:BOTTOM(HALVES), dir:-1}, KeyH:{half:BOTTOM(HALVES), dir:+1},
+  Digit5:{half:UL(HALVES),   dir:+1}, KeyX:{half:UL(HALVES),     dir:-1},
+  Digit4:{half:UR(HALVES),   dir:+1}, KeyB:{half:UR(HALVES),     dir:-1},
+  Digit3:{half:LL(HALVES),   dir:+1}, KeyV:{half:LL(HALVES),     dir:-1},
+  Digit6:{half:LR(HALVES),   dir:+1}, KeyC:{half:LR(HALVES),     dir:-1},
+  KeyZ:'undo',
 };
+/* Strip the e.code prefix for display: 'KeyW'->'w', 'Digit5'->'5'. */
+const codeToChar=code=>code.replace(/^Key|^Digit/,'').toLowerCase();
 const keymapByHalfDir={};
-Object.entries(KEYMAP).forEach(([key,entry])=>{
+Object.entries(KEYMAP).forEach(([code,entry])=>{
   if(entry==='undo') return;
-  keymapByHalfDir[entry.half.label+','+entry.dir]=key;
+  keymapByHalfDir[entry.half.label+','+entry.dir]=codeToChar(code);
 });
 window.addEventListener('keydown',e=>{
+  const tag=(e.target&&e.target.tagName||'').toLowerCase();
+  const inField=tag==='select'||tag==='input'||tag==='textarea';
+  /* Ctrl+Z / Cmd+Z undoes a move — except inside a text field, where the browser's
+   * own text-undo should win. */
+  if((e.ctrlKey||e.metaKey)&&!e.altKey&&!e.shiftKey&&e.code==='KeyZ'&&!inField){ e.preventDefault(); undo(); return; }
   if(e.ctrlKey||e.metaKey||e.altKey) return;
   if(document.getElementById('win').classList.contains('show')){
     if(e.key==='Enter'||e.key==='Escape'){ e.preventDefault(); document.getElementById('winBtn').click(); }
     return;
   }
-  const tag=(e.target&&e.target.tagName||'').toLowerCase();
-  if(tag==='select'||tag==='input'||tag==='textarea') return;
-  if(e.key==='1'||e.key==='2'){
+  if(inField) return;
+  if(e.code==='Digit1'||e.code==='Digit2'){
     e.preventDefault();
-    if(selRingPos===null) selRingPos=ringPosOf(e.key==='1'?'Upper-left':'Upper-right');
-    else selRingPos=(selRingPos+(e.key==='1'?1:-1)+selRing.length)%selRing.length;
+    if(selRingPos===null) selRingPos=ringPosOf(e.code==='Digit1'?'Upper-left':'Upper-right');
+    else selRingPos=(selRingPos+(e.code==='Digit1'?1:-1)+selRing.length)%selRing.length;
     showSelection(selRing[selRingPos]);
     return;
   }
@@ -295,7 +308,7 @@ window.addEventListener('keydown',e=>{
       return;
     }
   }
-  const entry=KEYMAP[e.key.toLowerCase()];
+  const entry=KEYMAP[e.code];
   if(!entry) return;
   e.preventDefault();
   if(entry==='undo') undo();
