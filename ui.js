@@ -164,6 +164,8 @@ function updateHintAvailability(){
 }
 function doMove(half,dir){
   if(busy) return;
+  const last=history[history.length-1];
+  if(last && last[0]===half && last[1]===-dir){ undo(); return; }
   applyHalf(half,dir);
   history.push([half,dir]); redoStack.length=0; moves++;
   userMoves.push({half,dir,halfIndex:HALVES.indexOf(half)});
