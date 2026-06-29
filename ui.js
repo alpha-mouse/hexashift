@@ -289,10 +289,12 @@ window.addEventListener('keydown',e=>{
     return;
   }
   if(inField) return;
-  if(e.code==='Digit1'||e.code==='Digit2'){
+  const isKey1=e.code==='Digit1'||e.code==='Numpad1';
+  const isKey2=e.code==='Digit2'||e.code==='Numpad2';
+  if(isKey1||isKey2){
     e.preventDefault();
-    if(selRingPos===null) selRingPos=ringPosOf(e.code==='Digit1'?'Upper-left':'Upper-right');
-    else selRingPos=(selRingPos+(e.code==='Digit1'?1:-1)+selRing.length)%selRing.length;
+    if(selRingPos===null) selRingPos=ringPosOf(isKey1?'Upper-left':'Upper-right');
+    else selRingPos=(selRingPos+(isKey1?1:-1)+selRing.length)%selRing.length;
     showSelection(selRing[selRingPos]);
     return;
   }
