@@ -29,10 +29,12 @@ tris.forEach(triangle=>{
   boardG.appendChild(polygon); polys[triangle.id]=polygon;
 });
 const VTX=[[1,SQRT3],[2,0],[1,-SQRT3],[-1,-SQRT3],[-2,0],[-1,SQRT3]];
+const frameLines=[];
 VTX.forEach(vertex=>{
   const line=document.createElementNS('http://www.w3.org/2000/svg','line');
   line.setAttribute('x1',0); line.setAttribute('y1',0); line.setAttribute('x2',vertex[0]); line.setAttribute('y2',vertex[1]);
   line.setAttribute('class','frame'); boardG.appendChild(line);
+  frameLines.push(line);
 });
 const hex=document.createElementNS('http://www.w3.org/2000/svg','polygon');
 hex.setAttribute('points', VTX.map(vertex=>vertex.join(',')).join(' '));
@@ -232,18 +234,20 @@ let selRingPos=null;
  * centroid direction matches the half's aff-centroid direction. y-up coords;
  * the outline lives in boardG (scale(1,-1)), so no manual flip. */
 const angDiff=(a,b)=>Math.abs(((a-b+540)%360)-180);
-const selPoints=HALVES.map(half=>{
+const selPoints=[], selVtxStart=[];
+HALVES.forEach(half=>{
   const acx=half.aff.reduce((s,id)=>s+tris[id].cx,0)/half.aff.length;
   const acy=half.aff.reduce((s,id)=>s+tris[id].cy,0)/half.aff.length;
   const halfAng=Math.atan2(acy,acx)*180/Math.PI;
-  let best=null,bestDiff=Infinity;
+  let bestI=0,best=null,bestDiff=Infinity;
   for(let i=0;i<VTX.length;i++){
     const win=[0,1,2,3].map(k=>VTX[(i+k)%VTX.length]);
     const wcx=win.reduce((s,p)=>s+p[0],0)/4, wcy=win.reduce((s,p)=>s+p[1],0)/4;
     const diff=angDiff(Math.atan2(wcy,wcx)*180/Math.PI,halfAng);
-    if(diff<bestDiff){bestDiff=diff;best=win;}
+    if(diff<bestDiff){bestDiff=diff;best=win;bestI=i;}
   }
-  return best.map(p=>p.join(',')).join(' ');
+  selPoints.push(best.map(p=>p.join(',')).join(' '));
+  selVtxStart.push(bestI);
 });
 const selHalo=document.createElementNS(SVGNS,'polygon'); selHalo.setAttribute('class','sel halo');
 const selCore=document.createElementNS(SVGNS,'polygon'); selCore.setAttribute('class','sel core');
@@ -253,10 +257,17 @@ function showSelection(halfIndex){
   selHalo.setAttribute('points',selPoints[halfIndex]);
   selCore.setAttribute('points',selPoints[halfIndex]);
   selHalo.style.display=selCore.style.display='';
+  boardG.classList.add('sel-active');
+  const start=selVtxStart[halfIndex];
+  frameLines.forEach((ln,i)=>{
+    ln.classList.toggle('sel-thick',[0,1,2,3].some(k=>(start+k)%VTX.length===i));
+  });
 }
 function exitSelection(){
   selRingPos=null;
   selHalo.style.display=selCore.style.display='none';
+  boardG.classList.remove('sel-active');
+  frameLines.forEach(ln=>ln.classList.remove('sel-thick'));
 }
 /* dir +1 = arrow points up (diagonals) / right (Top·Bottom); -1 = down / left. */
 /* Keyed by physical key position (e.code), so hotkeys work regardless of the OS

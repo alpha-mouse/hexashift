@@ -83,6 +83,7 @@ svg#board{display:block; width:100%; max-width:492px; height:auto; touch-action:
 .tri.dim{opacity:.22}
 .frame{fill:none; stroke:var(--frame); stroke-width:.05; stroke-linejoin:round}
 .frame.outer{stroke-width:.07}
+.sel-active .frame:not(.sel-thick){stroke-width:.02}
 
 #hud{display:flex; gap:14px; align-items:stretch; flex-wrap:wrap;
   justify-content:center; width:100%;}
